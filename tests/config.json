@@ -1,0 +1,13 @@
+{
+  "task": {
+    "host": "127.0.0.1",
+    "port": 8889
+  },
+  "biosemi": {
+    "host": "127.0.0.1",
+    "port": 9999,
+    "channels": 128
+  },
+  "classifier": {
+  }
+}
