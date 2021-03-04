@@ -25,15 +25,11 @@ class Counter:
     def __init__(self):
         self.val = Value('i', 0)
 
-    def __iadd__(self, n):
+    def GrabAndIncrement(self):
         with self.val.get_lock():
-            self.val.value += n
-
-        return self
-
-    @property
-    def value(self):
-        return self.val.value
+            v = self.val.value
+            self.val.value += 1
+            return v
 
 
 class DataPoint:
@@ -41,15 +37,12 @@ class DataPoint:
     # inherit from dict or implement __get/setitem__
     # NOTE: note multiprocessing safe
     id_counter = Counter()
-    thread_lock = threading.Lock()
 
     def __init__(self, time=None, **kwargs):
         self.data = kwargs
         self.time = time or datetime.datetime.now(datetime.timezone.utc)
 
-        with self.thread_lock:
-            self.id = self.id_counter.value
-            DataPoint.id_counter += 1
+        self.id = self.id_counter.GrabAndIncrement()
 
     def __str__(self):
         return json.dumps(
