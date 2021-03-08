@@ -1,9 +1,12 @@
 import datetime
+import time
 import json
+from nicls.configuration import Config
 from multiprocessing import Queue, Value
 import concurrent
 import asyncio
 from typing import Union
+import logging
 
 _logger = None
 
@@ -46,9 +49,9 @@ class DataPoint:
     def __str__(self):
         return json.dumps(
             {
-             "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
-             "data": self.data,
-             "id":   self.id
+                "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
+                "data": self.data,
+                "id": self.id
             },
         )
 
@@ -60,7 +63,9 @@ class DataLogger:
         self.data_queue = Queue()
 
         # auto create with timestamp
-        self.filename = ""
+        timestr = time.strftime("%Y%m%d")
+        self.filename = Config.experiment + Config.subject + timestr
+        logging.debug(f"data will be written to {self.filename}")
 
     def __del__(self):
         # flush the queue
@@ -79,7 +84,7 @@ class DataLogger:
     def _write(self):
         with open(self.filename, 'a') as f:
             while not self.data_queue.empty():
-               f.write(self.data_queue.get_nowait())
+                f.write(self.data_queue.get_nowait())
 
     async def write(self):
         '''

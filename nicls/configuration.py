@@ -2,6 +2,8 @@ import configparser
 import json
 import pathlib
 from typing import Union, Any
+import logging
+# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
 def load_configuration(path: Union[pathlib.Path, str]):

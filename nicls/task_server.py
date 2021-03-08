@@ -5,6 +5,8 @@ from collections import deque
 from nicls.data_logger import DataPoint
 from nicls.messages import MessageClient, Message, get_broker
 from nicls.data_logger import get_logger
+import logging
+# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
 class TaskMessage(DataPoint):
@@ -12,7 +14,7 @@ class TaskMessage(DataPoint):
     def __init__(self, ev_type, time=None, sent=False, **kwargs):
         super().__init__(time=time, **kwargs)
         self.type = ev_type
-        self.sent=sent
+        self.sent = sent
 
     @staticmethod
     def from_bytes(message):
@@ -20,8 +22,9 @@ class TaskMessage(DataPoint):
 
         try:
             msgid = raw_data.pop("id")
-            msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop("time"), sent=True, **raw_data)
-        except KeyError as e:
+            msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
+                "time"), sent=True, **raw_data)
+        except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
         msg.id = msgid
@@ -32,9 +35,10 @@ class TaskMessage(DataPoint):
             # FIXME log sent, but don't send over network
             {
                 "type": self.type,
-                "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
+                "time": self.time.timestamp() if
+                isinstance(self.time, datetime.datetime) else self.time,
                 "data": self.data,
-                "id":   self.id
+                "id": self.id
             }
         ) + "\n"
 
@@ -66,16 +70,20 @@ class TaskServer:
             # TODO: warn
             return self.server.serve_forever()
 
+        logging.info("starting task server")
         self.server = await asyncio.start_server(TaskServer._accept_connection, self.host, self.port)
         return self.server.serve_forever()
 
     async def __aexit__(self, exc_type, exc, tb):
+        logging.info("closing server")
         self.server.close()
         await self.server.wait_closed()
         self.server = None
+        logging.info("server closed successfully")
 
     @staticmethod
     async def _accept_connection(reader, writer):
+        logging.debug("accepting connection")
         await TaskConnection(reader, writer).listen()
 
 
@@ -132,4 +140,5 @@ class TaskConnection(MessageClient):
 
     def _check_configuration(self, received_config):
         # TODO
+        logging.info("checking configuration")
         return True

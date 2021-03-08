@@ -15,4 +15,4 @@ async def repeated_invoke(coro, delay):
         start = time.perf_counter()
         await coro()
         end = time.perf_counter()
-        await asyncio.sleep(max(0, delay - (end-start)))
+        await asyncio.sleep(max(0, delay - (end - start)))
