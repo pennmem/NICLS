@@ -63,8 +63,8 @@ class DataLogger:
         self.data_queue = Queue()
 
         # auto create with timestamp
-        timestr = time.strftime("%Y%m%d")
-        self.filename = Config.experiment + Config.subject + timestr
+        timestr = time.strftime("%Y%m%d%H%M")
+        self.filename = timestr
         logging.debug(f"data will be written to {self.filename}")
 
     def __del__(self):

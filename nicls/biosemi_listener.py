@@ -22,7 +22,7 @@ class BioSemiListener(MessageClient):
             "It does not intend to subscribe to any channels."
         )
 
-    def connect(self):
+    async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(self.host,
                                                                  self.port)
         await self.listen()

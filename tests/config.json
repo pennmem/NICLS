@@ -1,6 +1,4 @@
 {
-  "subject":"LTP000",
-  "experiment":"test_nicls",
   "task": {
     "host": "127.0.0.1",
     "port": 8889

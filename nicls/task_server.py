@@ -5,6 +5,7 @@ from collections import deque
 from nicls.data_logger import DataPoint
 from nicls.messages import MessageClient, Message, get_broker
 from nicls.data_logger import get_logger
+from nicls.biosemi_listener import BioSemiListener
 import logging
 # logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -71,7 +72,9 @@ class TaskServer:
             return self.server.serve_forever()
 
         logging.info("starting task server")
-        self.server = await asyncio.start_server(TaskServer._accept_connection, self.host, self.port)
+        self.server = await asyncio.start_server(TaskServer._accept_connection,
+                                                 self.host,
+                                                 self.port)
         return self.server.serve_forever()
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -121,10 +124,11 @@ class TaskConnection(MessageClient):
                     # TODO: set up classifier, connect to biosemi
                     # if we use different classifier versions or the like,
                     # we'll need subclasses or a factory
-                    # self.data_source = BioSemiListener(Config.biosemi.host,
-                    #                                    Config.biosemi.port,
-                    #                                    Config.biosemi.channels)
-                    # self.classifier = Classifier(self.data_source.id, Config.classifier)
+                    self.data_source = BioSemiListener(Config.biosemi.host,
+                                                       Config.biosemi.port,
+                                                       Config.biosemi.channels)
+                    # self.classifier = Classifier(self.data_source.id,
+                    #                              Config.classifier)
                     # get_broker().subscribe(self.classifier.id)
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
                 else:
@@ -141,4 +145,4 @@ class TaskConnection(MessageClient):
     def _check_configuration(self, received_config):
         # TODO
         logging.info("checking configuration")
-        return True
+        return False
