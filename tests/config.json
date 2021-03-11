@@ -6,8 +6,13 @@
   "biosemi": {
     "host": "127.0.0.1",
     "port": 9999,
-    "channels": 128
+    "channels": 128,
+    "samplerate":1000
   },
   "classifier": {
+    "samplerate":1000,
+    "bufferlen":10000,
+    "datarate":1, 
+    "classiffreq":10
   }
 }

@@ -1,6 +1,7 @@
 import asyncio
 from nicls.task_server import TaskMessage
 from nicls.utils import repeated_invoke
+import logging
 
 
 class DummyTask:
@@ -9,7 +10,7 @@ class DummyTask:
         self.port = port
 
     async def connect(self):
-        print("connecting task")
+        logging.info("connecting task")
         self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
 
         self.writer.write(bytes(TaskMessage("CONNECTED")))

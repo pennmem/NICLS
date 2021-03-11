@@ -7,9 +7,12 @@ import logging
 
 
 async def main():
-    logging.basicConfig(filename='nicls.log',
-                        format='%(asctime)s:%(levelname)s:%(message)s',
-                        level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
+                        level=logging.DEBUG,
+                        handlers=[
+                            logging.FileHandler("nicls.log"),
+                            logging.StreamHandler()
+                        ])
     # set up logger
     logger = get_logger()
     logging.info("Data logger initialized")
@@ -21,4 +24,4 @@ async def main():
 if __name__ == "__main__":
     # load config
     load_configuration("test/config.json")
-    asyncio.run(main("tests/config.json"))
+    asyncio.run(main("test/config.json"))

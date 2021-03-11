@@ -23,13 +23,15 @@ class BioSemiListener(MessageClient):
         )
 
     async def connect(self):
+        logging.debug("attempting to connect biosemi")
         self.reader, self.writer = await asyncio.open_connection(self.host,
                                                                  self.port)
+        logging.debug("connected to biosemi")
         await self.listen()
 
     async def listen(self):
         ''' Read packets of data from the biosemi system and
-        publish them to on the channel for object id.
+        publish them to the channel for object id.
 
         :return: None
         '''
@@ -41,6 +43,7 @@ class BioSemiListener(MessageClient):
                     self.channels * SAMPLES * WIDTH)
             except asyncio.IncompleteReadError as e:
                 # TODO
+                logging.warning(e)
                 print(e)
 
             get_broker().publish(self.id, Message(self.id, self.parse(data)))

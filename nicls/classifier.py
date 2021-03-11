@@ -13,14 +13,15 @@ class Classifier(MessageClient):
         logging.info("initializing classifier")
         super().__init__()
         logging.info("subscribing classifier to data source")
-        get_broker().subscribe(source_channel)
+        get_broker().subscribe(source_channel, self)
         self.source_channel = source_channel
 
         # TODO: mechanism to enable/disable
 
         # convert seconds to data packets
+        logging.debug("initializing data queue")
         self.queue = deque(
-            maxlen=bufferlen * (1 / samplerate) * (1 / datarate)
+            maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
         )
 
     def receive(self, channel: str, message: Message):
@@ -30,6 +31,7 @@ class Classifier(MessageClient):
 
             # for a fixed length queue, this implicitly includes a popleft
             self.queue.append(message.payload)
+            logging.info("data added")
 
     def load(self):
         # the loading here should construct the full processing chain,
@@ -41,6 +43,7 @@ class Classifier(MessageClient):
             # TODO: while not cancelled
 
             # TODO: give this data
+            # something involving the queue
             result = await asyncio.run_in_executor(
                 executor, self.pipeline, np.concatenate(self.queue)
             )

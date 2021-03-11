@@ -4,10 +4,11 @@ import json
 from collections import deque
 from nicls.data_logger import DataPoint
 from nicls.messages import MessageClient, Message, get_broker
+from nicls.configuration import Config
 from nicls.data_logger import get_logger
 from nicls.biosemi_listener import BioSemiListener
+from nicls.classifier import Classifier
 import logging
-# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
 class TaskMessage(DataPoint):
@@ -127,9 +128,14 @@ class TaskConnection(MessageClient):
                     self.data_source = BioSemiListener(Config.biosemi.host,
                                                        Config.biosemi.port,
                                                        Config.biosemi.channels)
-                    # self.classifier = Classifier(self.data_source.id,
-                    #                              Config.classifier)
-                    # get_broker().subscribe(self.classifier.id)
+                    self.classifier = Classifier(self.data_source.id,
+                                                 Config.classifier.bufferlen,
+                                                 Config.classifier.samplerate,
+                                                 Config.classifier.datarate,
+                                                 Config.classifier.classiffreq)
+                    get_broker().subscribe(self.classifier.id, self)
+                    # is this right? await the connection?
+                    await self.data_source.connect()
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
                 else:
                     # TODO: close connection
@@ -145,4 +151,4 @@ class TaskConnection(MessageClient):
     def _check_configuration(self, received_config):
         # TODO
         logging.info("checking configuration")
-        return False
+        return True
