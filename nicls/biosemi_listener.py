@@ -47,6 +47,7 @@ class BioSemiListener(MessageClient):
                 print(e)
 
             get_broker().publish(self.id, Message(self.id, self.parse(data)))
+            logging.debug(f"publishing data to channel {self.id}")
 
     def parse(self, data: bytes):
         ''' Data format is 24 bytes per channel, repeated 8 times,
@@ -56,7 +57,8 @@ class BioSemiListener(MessageClient):
         :param data: little endian ordered data
         :return: np.array with shape (channels, samples)
         '''
-
+        # changed comprehension from generator to list because it was exhausted
+        # before being mapped. apparently poorly defined.
         data = map(partial(int.from_bytes, byteorder="little", signed=True),
-                   (data[i:i + 3] for i in range(0, len(data), WIDTH)))
-        return np.array(data).reshape(self.channels, SAMPLES)
+                   [data[i:i + WIDTH] for i in range(0, len(data), WIDTH)])
+        return np.array(list(data)).reshape(self.channels, SAMPLES)

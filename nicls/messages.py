@@ -74,15 +74,17 @@ class MessageBroker:
         self.channels = {}
 
     def subscribe(self, channel: str, client: MessageClient):
-        if channel in self.channels:
-            self.channels[channel].subscribe(client)
+        if channel not in self.channels:
+            self.channels[channel] = MessageChannel(channel)
+        self.channels[channel].subscribe(client)
 
     def unsubscribe(self, channel: str, client: MessageClient):
         if channel not in self.channels:
-            self.channels[channel] = MessageChannel(channel)
+            raise ValueError(f"channel {channel} does not exist")
         self.channels[channel].unsubscribe(client)
 
     def publish(self, channel, message: Message):
+        # import pdb; pdb.set_trace()
         if channel not in self.channels:
             self.channels[channel] = MessageChannel(channel)
         self.channels[channel].publish(message)

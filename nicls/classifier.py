@@ -12,7 +12,7 @@ class Classifier(MessageClient):
                  samplerate=None, datarate=None, classiffreq=None):
         logging.info("initializing classifier")
         super().__init__()
-        logging.info("subscribing classifier to data source")
+        logging.info(f"subscribing classifier to data source on channel {source_channel}")
         get_broker().subscribe(source_channel, self)
         self.source_channel = source_channel
 
@@ -23,9 +23,10 @@ class Classifier(MessageClient):
         self.queue = deque(
             maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
         )
+        # does this really need maxlen? that argument
 
     def receive(self, channel: str, message: Message):
-        logging.debug("receiving data from source")
+        logging.debug(f"receiving data from channel {channel}")
         if channel == self.source_channel:
             # TODO: check this is data and not 'error' or some such
 
@@ -36,7 +37,11 @@ class Classifier(MessageClient):
     def load(self):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
-        pass
+        logging.debug("grabbing data from queue")
+        chunk = self.popleft()
+        result = np.random.randint(0, 2)
+        logging.info(f"classifier result: {result}")
+        return result
 
     async def fit(self):
         with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -45,6 +50,5 @@ class Classifier(MessageClient):
             # TODO: give this data
             # something involving the queue
             result = await asyncio.run_in_executor(
-                executor, self.pipeline, np.concatenate(self.queue)
-            )
+                executor, self.load, self.queue)
             get_broker().publish(self.id, Message(self.id, result))
