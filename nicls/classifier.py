@@ -17,6 +17,7 @@ class Classifier(MessageClient):
         self.source_channel = source_channel
 
         # TODO: mechanism to enable/disable
+        self._enabled = False
 
         # convert seconds to data packets
         logging.debug("initializing data queue")
@@ -55,3 +56,9 @@ class Classifier(MessageClient):
                 executor, self.load, np.array(list(self.queue)))
             logging.info(f"publishing classifier result to {self.id}")
             get_broker().publish(self.id, Message(self.id, result))
+
+    def enable(self):
+        self._enabled = True
+
+    def disable(self):
+        self._enabled = False
