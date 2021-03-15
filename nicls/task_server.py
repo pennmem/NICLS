@@ -100,7 +100,11 @@ class TaskConnection(MessageClient):
 
     def receive(self, channel: str, message: Message):
         # TODO
-        get_broker().
+        logging.debug("task server recieving message")
+        if channel == self.classifier.id:
+            result = message.payload
+            logging.info(f"task server received classifier result: {result}")
+            # await self.send(bytes(TaskMessage(result)))
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -135,8 +139,9 @@ class TaskConnection(MessageClient):
                                                  Config.classifier.classiffreq)
                     get_broker().subscribe(self.classifier.id, self)
                     # is this right? await the connection?
-                    await self.data_source.connect()
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
+                    # await self.data_source.connect()
+                    logging.info("task server connected to biosemi listener")
                 else:
                     # TODO: close connection
                     await self.send(bytes(TaskMessage('ERROR')))

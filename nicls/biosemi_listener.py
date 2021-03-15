@@ -28,6 +28,7 @@ class BioSemiListener(MessageClient):
                                                                  self.port)
         logging.debug("connected to biosemi")
         await self.listen()
+        logging.debug("we've escaped the awaitable!")
 
     async def listen(self):
         ''' Read packets of data from the biosemi system and

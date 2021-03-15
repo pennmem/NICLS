@@ -40,6 +40,10 @@ class Classifier(MessageClient):
     def load(self, data):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
+        print(data[0:5, 1])
+        print(data.shape)
+        pows = np.fft.fft(data)
+
         result = np.random.randint(0, 2)
         logging.info(f"classifier result: {result}")
         return result
@@ -53,8 +57,11 @@ class Classifier(MessageClient):
             # something involving the queue
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
-                executor, self.load, np.array(list(self.queue)))
-            logging.info(f"publishing classifier result to {self.id}")
+                executor, self.load, np.array(list(self.queue))
+            )
+            logging.debug(
+                f"publishing classifier result {result} to {self.id}"
+            )
             get_broker().publish(self.id, Message(self.id, result))
 
     def enable(self):
