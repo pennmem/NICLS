@@ -140,7 +140,10 @@ class TaskConnection(MessageClient):
                     get_broker().subscribe(self.classifier.id, self)
                     # is this right? await the connection?
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
-                    # await self.data_source.connect()
+                    biosemi_connect = asyncio.create_task(
+                        self.data_source.connect()
+                    )
+                    await biosemi_connect
                     logging.info("task server connected to biosemi listener")
                 else:
                     # TODO: close connection
