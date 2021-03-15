@@ -26,7 +26,8 @@ class DummyBiosemi:
             data = np.random.randint(low=int(0x7fffff), high=int(0x7fffff) + 1, size=self.channels*8).tobytes()
             writer.write(data)
 
-            await asyncio.sleep(0.008)
+            await asyncio.sleep(0.8)
+            # await asyncio.sleep(0.008)
 
 
 async def main():

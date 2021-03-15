@@ -7,7 +7,7 @@ import logging
 
 
 async def main():
-    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
+    logging.basicConfig(format='%(asctime)s:%(filename)s:%(levelname)s:%(message)s',
                         level=logging.DEBUG,
                         handlers=[
                             logging.FileHandler("nicls.log"),

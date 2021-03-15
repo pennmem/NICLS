@@ -23,8 +23,8 @@ class Classifier(MessageClient):
         self.queue = deque(
             maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
         )
-        # does this really need maxlen? that argument
 
+    # should this be an async fucntion?
     def receive(self, channel: str, message: Message):
         logging.debug(f"receiving data from channel {channel}")
         if channel == self.source_channel:
@@ -33,22 +33,25 @@ class Classifier(MessageClient):
             # for a fixed length queue, this implicitly includes a popleft
             self.queue.append(message.payload)
             logging.info("data added")
+            logging.info("fitting data")
+            fit_task = asyncio.create_task(self.fit())
 
-    def load(self):
+    def load(self, data):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
-        logging.debug("grabbing data from queue")
-        chunk = self.popleft()
         result = np.random.randint(0, 2)
         logging.info(f"classifier result: {result}")
         return result
 
     async def fit(self):
+        # import pdb; pdb.set_trace()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             # TODO: while not cancelled
 
             # TODO: give this data
             # something involving the queue
-            result = await asyncio.run_in_executor(
-                executor, self.load, self.queue)
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                executor, self.load, np.array(list(self.queue)))
+            logging.info(f"publishing classifier result to {self.id}")
             get_broker().publish(self.id, Message(self.id, result))
