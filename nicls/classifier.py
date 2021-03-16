@@ -49,7 +49,6 @@ class Classifier(MessageClient):
         return result
 
     async def fit(self):
-        # import pdb; pdb.set_trace()
         with concurrent.futures.ProcessPoolExecutor() as executor:
             # TODO: while not cancelled
 

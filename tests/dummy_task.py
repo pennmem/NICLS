@@ -18,7 +18,7 @@ class DummyTask:
 
         message = await self.reader.readline()
         if TaskMessage.from_bytes(message).type != 'CONNECTED_OK':
-                raise Exception("Task server not connected")
+            raise Exception("Task server not connected")
 
         # CONFIGURE
         self.writer.write(bytes(TaskMessage("CONFIGURE")))
@@ -32,7 +32,7 @@ class DummyTask:
         logging.debug("starting latency check")
         for i in range(20):
             try:
-                await asyncio.wait_for(self._heartbeat(), 5) #.2
+                await asyncio.wait_for(self._heartbeat(), 3)  # .2
             except:
                 raise Exception("Latency check failed")
 
@@ -46,7 +46,6 @@ class DummyTask:
         await asyncio.gather(
             self.listen(), repeated_invoke(self._heartbeat, 1)
         )
-        
 
     async def _heartbeat(self):
         logging.debug("send Heartbeat")

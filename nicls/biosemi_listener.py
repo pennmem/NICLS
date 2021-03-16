@@ -3,6 +3,7 @@ from nicls.messages import MessageClient, Message, get_broker
 from functools import partial
 import numpy as np
 import logging
+import concurrent
 
 SAMPLES = 8
 WIDTH = 3
@@ -27,7 +28,11 @@ class BioSemiListener(MessageClient):
         self.reader, self.writer = await asyncio.open_connection(self.host,
                                                                  self.port)
         logging.debug("connected to biosemi")
-        await self.listen()
+        task = asyncio.create_task(self.listen())
+        # with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+        #         loop = asyncio.get_running_loop()
+        #         result = await loop.run_in_executor(executor, task)
+        # await self.listen()
         logging.debug("we've escaped the awaitable!")
 
     async def listen(self):

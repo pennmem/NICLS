@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 from collections import deque
+import concurrent
 from nicls.data_logger import DataPoint
 from nicls.messages import MessageClient, Message, get_broker
 from nicls.configuration import Config
@@ -140,9 +141,7 @@ class TaskConnection(MessageClient):
                     get_broker().subscribe(self.classifier.id, self)
                     # is this right? await the connection?
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
-                    biosemi_connect = asyncio.create_task(
-                        self.data_source.connect()
-                    )
+                    biosemi_connect = self.data_source.connect()
                     await biosemi_connect
                     logging.info("task server connected to biosemi listener")
                 else:
