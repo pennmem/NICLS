@@ -83,6 +83,7 @@ class DataLogger:
         self.data_queue.put(data)
 
     def _write(self):
+    	# TODO: should probably set a datadir in the config and use it here
         with open("../data/" + self.filename, 'a+') as f:
             while not self.data_queue.empty():
                 f.write(str(self.data_queue.get_nowait()))
