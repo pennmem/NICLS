@@ -64,7 +64,7 @@ class DataLogger:
 
         # auto create with timestamp
         timestr = time.strftime("%Y%m%d%H%M")
-        self.filename = timestr
+        self.filename = timestr+".jsonl"
         logging.debug(f"data will be written to {self.filename}")
 
     def __del__(self):
@@ -72,6 +72,7 @@ class DataLogger:
         self._write()
 
     def log(self, message: Union[DataPoint, dict]):
+        logging.debug("entered logging function")
         if isinstance(message, DataPoint):
             data = message
         elif isinstance(message, dict):
@@ -82,13 +83,14 @@ class DataLogger:
         self.data_queue.put(data)
 
     def _write(self):
-        with open(self.filename, 'a') as f:
+        with open("../data/" + self.filename, 'a+') as f:
             while not self.data_queue.empty():
-                f.write(self.data_queue.get_nowait())
+                f.write(str(self.data_queue.get_nowait()))
 
     async def write(self):
         '''
         :return: None
         '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            return await asyncio.run_in_executor(executor, self._write)
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(executor, self._write)

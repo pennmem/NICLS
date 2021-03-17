@@ -11,7 +11,7 @@ async def repeated_invoke(coro, delay):
     :param delay: Interval in seconds
     :return: None
     '''
-    while not True:
+    while True:
         start = time.perf_counter()
         await coro()
         end = time.perf_counter()

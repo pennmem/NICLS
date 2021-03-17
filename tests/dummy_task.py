@@ -11,7 +11,10 @@ class DummyTask:
 
     async def connect(self):
         logging.info("connecting task")
-        self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        self.reader, self.writer = await asyncio.open_connection(
+            self.host,
+            self.port
+        )
 
         self.writer.write(bytes(TaskMessage("CONNECTED")))
         await self.writer.drain()
@@ -32,7 +35,7 @@ class DummyTask:
         logging.debug("starting latency check")
         for i in range(20):
             try:
-                await asyncio.wait_for(self._heartbeat(), 3)  # .2
+                await asyncio.wait_for(self._heartbeat(), .2)
             except:
                 raise Exception("Latency check failed")
 
@@ -41,8 +44,6 @@ class DummyTask:
             # could be implemented here for completeness
             await asyncio.sleep(.2)
 
-        # asyncio.create_task(hb async for hb in )
-        # await asyncio.gather(self.listen(), self._heartbeat())
         await asyncio.gather(
             self.listen(), repeated_invoke(self._heartbeat, 1)
         )

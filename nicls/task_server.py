@@ -89,6 +89,8 @@ class TaskServer:
     @staticmethod
     async def _accept_connection(reader, writer):
         logging.debug("accepting connection")
+        logging.debug("reader: " + str(reader))
+        logging.debug("writer: " + str(writer))
         await TaskConnection(reader, writer).listen()
 
 
@@ -105,7 +107,10 @@ class TaskConnection(MessageClient):
         if channel == self.classifier.id:
             result = message.payload
             logging.info(f"task server received classifier result: {result}")
-            # await self.send(bytes(TaskMessage(result)))
+            # message_task = asyncio.create_task(
+            #     self.send(bytes(TaskMessage(result)))
+            # )
+            # await message_task
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -120,6 +125,7 @@ class TaskConnection(MessageClient):
 
             message = TaskMessage.from_bytes(message)
             get_logger().log(message)
+            # await logger.write()
 
             if message.type == 'CONNECTED':
                 await self.send(bytes(TaskMessage('CONNECTED_OK')))

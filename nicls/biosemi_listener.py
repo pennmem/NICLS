@@ -29,10 +29,6 @@ class BioSemiListener(MessageClient):
                                                                  self.port)
         logging.debug("connected to biosemi")
         task = asyncio.create_task(self.listen())
-        # with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-        #         loop = asyncio.get_running_loop()
-        #         result = await loop.run_in_executor(executor, task)
-        # await self.listen()
         logging.debug("we've escaped the awaitable!")
 
     async def listen(self):
