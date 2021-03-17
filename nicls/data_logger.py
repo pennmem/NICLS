@@ -6,6 +6,7 @@ from multiprocessing import Queue, Value
 import concurrent
 import asyncio
 from typing import Union
+import os
 import logging
 
 _logger = None
@@ -64,7 +65,9 @@ class DataLogger:
 
         # auto create with timestamp
         timestr = time.strftime("%Y%m%d%H%M")
-        self.filename = timestr+".jsonl"
+        if not os.path.exists(Config.datadir):
+            os.makedirs(Config.datadir)
+        self.filename = os.path.join(Config.datadir, timestr + ".jsonl")
         logging.debug(f"data will be written to {self.filename}")
 
     def __del__(self):
@@ -83,8 +86,8 @@ class DataLogger:
         self.data_queue.put(data)
 
     def _write(self):
-    	# TODO: should probably set a datadir in the config and use it here
-        with open("../data/" + self.filename, 'a+') as f:
+        # TODO: should probably set a datadir in the config and use it here
+        with open(self.filename, 'a+') as f:
             while not self.data_queue.empty():
                 f.write(str(self.data_queue.get_nowait()))
 
