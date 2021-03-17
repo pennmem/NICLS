@@ -107,10 +107,9 @@ class TaskConnection(MessageClient):
         if channel == self.classifier.id:
             result = message.payload
             logging.info(f"task server received classifier result: {result}")
-            # message_task = asyncio.create_task(
-            #     self.send(bytes(TaskMessage(result)))
-            # )
-            # await message_task
+            message_task = asyncio.create_task(
+                self.send(bytes(TaskMessage(result)))
+            )
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -156,6 +155,7 @@ class TaskConnection(MessageClient):
 
     async def send(self, message: TaskMessage):
         self.writer.write(message)
+        get_logger().log(TaskMessage.from_bytes(message))
         await self.writer.drain()
 
     def _check_configuration(self, received_config):

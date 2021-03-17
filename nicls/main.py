@@ -16,7 +16,7 @@ async def main():
     # set up logger
     logger = get_logger()
     logging.info("Data logger initialized")
-    logger_write = repeated_invoke(logger.write, 1) #5
+    logger_write = repeated_invoke(logger.write, 5)
 
     async with TaskServer(Config.task.host, Config.task.port) as task_server:
         await asyncio.gather(task_server, logger_write)

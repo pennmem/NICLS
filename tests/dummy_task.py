@@ -64,18 +64,17 @@ class DummyTask:
         # reading in both _heartbeat and listen causes collision
         # instead have listen change boolean monitor
         await asyncio.sleep(.2)
-
-        
+        if not self.is_beating:
+            raise Exception("Missed Heartbeat")
 
     async def listen(self):
         while not self.reader.at_eof():
-            logging.debug("dummy task is listening")
             lock = asyncio.Lock()
             async with lock:
                 message = await self.reader.readline()
             if TaskMessage.from_bytes(message).type == 'HEARTBEAT_OK':
                 logging.debug("heartbeat returned")
-                self.is_beating=True
+                self.is_beating = True
 
             message = message.decode('utf-8')
             print(message)
