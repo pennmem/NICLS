@@ -125,14 +125,13 @@ class TaskConnection(MessageClient):
 
             message = TaskMessage.from_bytes(message)
             get_logger().log(message)
-            # await logger.write()
 
             if message.type == 'CONNECTED':
                 await self.send(bytes(TaskMessage('CONNECTED_OK')))
 
             elif message.type == 'CONFIGURE':
                 if self._check_configuration(message.data):
-
+                    await self.send(bytes(TaskMessage('CONFIGURE_OK')))
                     # TODO: set up classifier, connect to biosemi
                     # if we use different classifier versions or the like,
                     # we'll need subclasses or a factory
@@ -145,8 +144,6 @@ class TaskConnection(MessageClient):
                                                  Config.classifier.datarate,
                                                  Config.classifier.classiffreq)
                     get_broker().subscribe(self.classifier.id, self)
-                    # is this right? await the connection?
-                    await self.send(bytes(TaskMessage('CONFIGURE_OK')))
                     biosemi_connect = self.data_source.connect()
                     await biosemi_connect
                     logging.info("task server connected to biosemi listener")
