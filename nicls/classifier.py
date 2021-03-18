@@ -40,12 +40,8 @@ class Classifier(MessageClient):
     def load(self, data):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
-        print(data[0:5, 1])
-        print(data.shape)
         pows = np.fft.fft(data)
-
         result = np.random.randint(0, 2)
-        logging.info(f"classifier result: {result}")
         return result
 
     async def fit(self):
