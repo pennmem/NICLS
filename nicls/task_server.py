@@ -128,6 +128,9 @@ class TaskConnection(MessageClient):
             if message.type == 'CONNECTED':
                 await self.send(bytes(TaskMessage('CONNECTED_OK')))
 
+            elif message.type == 'HEARTBEAT':
+                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
+
             elif message.type == 'CONFIGURE':
                 if self._check_configuration(message.data):
                     await self.send(bytes(TaskMessage('CONFIGURE_OK')))
@@ -150,8 +153,11 @@ class TaskConnection(MessageClient):
                     # TODO: close connection
                     await self.send(bytes(TaskMessage('ERROR')))
 
-            elif message.type == 'HEARTBEAT':
-                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
+            elif message.type == "CLASSIFIER_ON":
+                self.classifier.enable()
+
+            elif message.type == "CLASSIFIER_OFF":
+                self.classifier.disable()
 
     async def send(self, message: TaskMessage):
         self.writer.write(message)

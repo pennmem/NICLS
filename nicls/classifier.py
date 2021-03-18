@@ -15,9 +15,7 @@ class Classifier(MessageClient):
         logging.info(f"subscribing classifier to data source on channel {source_channel}")
         get_broker().subscribe(source_channel, self)
         self.source_channel = source_channel
-
-        # TODO: mechanism to enable/disable
-        self._enabled = False
+        self._enabled = True
 
         # convert seconds to data packets
         logging.debug("initializing data queue")
@@ -28,7 +26,7 @@ class Classifier(MessageClient):
     # should this be an async fucntion?
     def receive(self, channel: str, message: Message):
         logging.debug(f"receiving data from channel {channel}")
-        if channel == self.source_channel:
+        if (channel == self.source_channel)&(self._enabled):
             # TODO: check this is data and not 'error' or some such
 
             # for a fixed length queue, this implicitly includes a popleft
