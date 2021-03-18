@@ -50,7 +50,8 @@ class DataPoint:
     def __str__(self):
         return json.dumps(
             {
-                "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
+                "time": self.time.timestamp() if
+                isinstance(self.time, datetime.datetime) else self.time,
                 "data": self.data,
                 "id": self.id
             },
@@ -79,6 +80,7 @@ class DataLogger:
         if isinstance(message, DataPoint):
             data = message
         elif isinstance(message, dict):
+            logging.debug("Message is not DataPoint")
             data = DataPoint(**message)
         else:
             raise Exception("Message format not supported")

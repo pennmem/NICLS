@@ -26,7 +26,7 @@ class TaskMessage(DataPoint):
         try:
             msgid = raw_data.pop("id")
             msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
-                "time"), sent=True, **raw_data)
+                "time"), sent=True, **raw_data.pop("data"))
         except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
@@ -108,7 +108,8 @@ class TaskConnection(MessageClient):
             result = message.payload
             logging.info(f"task server received classifier result: {result}")
             message_task = asyncio.create_task(
-                self.send(bytes(TaskMessage(result)))
+                self.send(
+                    bytes(TaskMessage("classifier", **{"label": result})))
             )
 
     async def listen(self):
