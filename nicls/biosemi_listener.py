@@ -29,7 +29,6 @@ class BioSemiListener(MessageClient):
                                                                  self.port)
         logging.debug("connected to biosemi")
         task = asyncio.create_task(self.listen())
-        logging.debug("we've escaped the awaitable!")
 
     async def listen(self):
         ''' Read packets of data from the biosemi system and

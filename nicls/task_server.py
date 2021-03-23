@@ -102,15 +102,12 @@ class TaskConnection(MessageClient):
         self.writer = writer
 
     def receive(self, channel: str, message: Message):
-        # TODO
         logging.debug("task server recieving message")
         if channel == self.classifier.id:
             result = message.payload
             logging.info(f"task server received classifier result: {result}")
-            message_task = asyncio.create_task(
-                self.send(
-                    bytes(TaskMessage("classifier", **{"label": result})))
-            )
+            out_message = TaskMessage("classifier", **{"label": result})
+            message_task = asyncio.create_task(self.send(bytes(out_message)))
 
     async def listen(self):
         while not self.reader.at_eof():
