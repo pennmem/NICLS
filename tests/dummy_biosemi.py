@@ -23,7 +23,8 @@ class DummyBiosemi:
     async def send_bytes(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         while not writer.is_closing():
             # use max and min two's complement signed 24 bit ints, with high as exclusive upper bound
-            data = np.random.randint(low=int(0x7fffff), high=int(0x7fffff) + 1, size=self.channels*8).tobytes()
+            # data = np.random.randint(low=int(0x7fffff), high=int(0x7fffff) + 1, size=self.channels*8).tobytes()
+            data = b"\xff\xff\x7f" * self.channels * 8
             writer.write(data)
 
             await asyncio.sleep(0.8)
