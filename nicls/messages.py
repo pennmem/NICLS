@@ -1,5 +1,7 @@
 from collections import namedtuple
 from uuid import uuid4
+from nicls.data_logger import get_logger
+# from nicls.task_server import TaskMessage
 
 '''
 Very, very basic MQTT like messaging system. A more sophisticated version
@@ -50,6 +52,7 @@ class MessageChannel:
     def publish(self, message: Message):
         if self.log:
             # TODO: log messages that pass through channel
+            # get_logger().log(TaskMessage(ev_type="message", ))
             pass
 
         for client in self.subscribers:
@@ -73,9 +76,9 @@ class MessageBroker:
     def __init__(self):
         self.channels = {}
 
-    def subscribe(self, channel: str, client: MessageClient):
+    def subscribe(self, channel: str, client: MessageClient, log=True):
         if channel not in self.channels:
-            self.channels[channel] = MessageChannel(channel)
+            self.channels[channel] = MessageChannel(channel, log=log)
         self.channels[channel].subscribe(client)
 
     def unsubscribe(self, channel: str, client: MessageClient):

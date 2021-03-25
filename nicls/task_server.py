@@ -26,7 +26,7 @@ class TaskMessage(DataPoint):
         try:
             msgid = raw_data.pop("id")
             msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
-                "time"), sent=True, **raw_data)
+                "time"), sent=True, **raw_data.pop("data"))
         except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
@@ -102,14 +102,12 @@ class TaskConnection(MessageClient):
         self.writer = writer
 
     def receive(self, channel: str, message: Message):
-        # TODO
         logging.debug("task server recieving message")
         if channel == self.classifier.id:
             result = message.payload
             logging.info(f"task server received classifier result: {result}")
-            message_task = asyncio.create_task(
-                self.send(bytes(TaskMessage(result)))
-            )
+            out_message = TaskMessage("classifier", **{"label": result})
+            message_task = asyncio.create_task(self.send(bytes(out_message)))
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -127,6 +125,9 @@ class TaskConnection(MessageClient):
 
             if message.type == 'CONNECTED':
                 await self.send(bytes(TaskMessage('CONNECTED_OK')))
+
+            elif message.type == 'HEARTBEAT':
+                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
 
             elif message.type == 'CONFIGURE':
                 if self._check_configuration(message.data):
@@ -150,8 +151,11 @@ class TaskConnection(MessageClient):
                     # TODO: close connection
                     await self.send(bytes(TaskMessage('ERROR')))
 
-            elif message.type == 'HEARTBEAT':
-                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
+            elif message.type == "CLASSIFIER_ON":
+                self.classifier.enable()
+
+            elif message.type == "CLASSIFIER_OFF":
+                self.classifier.disable()
 
     async def send(self, message: TaskMessage):
         self.writer.write(message)

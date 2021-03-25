@@ -77,7 +77,7 @@ class DummyTask:
                 self.is_beating = True
 
             message = message.decode('utf-8')
-            print(message)
+            # print(message)
 
 
 async def main():

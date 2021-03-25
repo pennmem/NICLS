@@ -41,16 +41,19 @@ class DataPoint:
     # NOTE: note multiprocessing safe
     id_counter = Counter()
 
-    def __init__(self, time=None, **kwargs):
+    def __init__(self, dp_type=None, time=None, **kwargs):
         self.data = kwargs
         self.time = time or datetime.datetime.now(datetime.timezone.utc)
+        self.type = dp_type or "datapoint"
 
         self.id = self.id_counter.GrabAndIncrement()
 
     def __str__(self):
         return json.dumps(
             {
-                "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
+                "type": self.type,
+                "time": self.time.timestamp() if
+                isinstance(self.time, datetime.datetime) else self.time,
                 "data": self.data,
                 "id": self.id
             },
@@ -79,6 +82,7 @@ class DataLogger:
         if isinstance(message, DataPoint):
             data = message
         elif isinstance(message, dict):
+            logging.debug("Message is not DataPoint")
             data = DataPoint(**message)
         else:
             raise Exception("Message format not supported")
@@ -86,7 +90,6 @@ class DataLogger:
         self.data_queue.put(data)
 
     def _write(self):
-        # TODO: should probably set a datadir in the config and use it here
         with open(self.filename, 'a+') as f:
             while not self.data_queue.empty():
                 f.write(str(self.data_queue.get_nowait()))
