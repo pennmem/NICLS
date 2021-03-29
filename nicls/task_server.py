@@ -160,6 +160,8 @@ class TaskConnection(MessageClient):
     async def send(self, message: TaskMessage):
         self.writer.write(message)
         get_logger().log(TaskMessage.from_bytes(message))
+        # This has a bug when the program is going to finish (drain doesn't actually wait till evrything is sent)
+        # Check Bug #3 on this webpage: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#example-3-asyncio-with-async-await
         await self.writer.drain()
 
     def _check_configuration(self, received_config):
