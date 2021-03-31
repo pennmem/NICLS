@@ -13,8 +13,8 @@ class DummyBiosemi:
         self.port = port
 
     async def __aenter__(self):
-        self.server = await asyncio.start_server(self.send_bytes, self.host, self.port)
-        return self.server.serve_forever()
+       self.server = await asyncio.start_server(self.send_bytes, self.host, self.port)
+       return self.server.serve_forever()
 
     async def __aexit__(self, exc_type, exc, tb):
         self.server.close()
