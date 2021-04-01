@@ -5,7 +5,8 @@ import numpy as np
 import logging
 import concurrent
 
-SAMPLES = 8
+# samples / channel, width of bytes
+SAMPLES = 16
 WIDTH = 3
 
 

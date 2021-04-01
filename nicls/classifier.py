@@ -31,6 +31,9 @@ class Classifier(MessageClient):
         self.queue = deque(
             maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
         )
+        # classifreq is a frequency, i.e. samples/second
+        # need a conversion, something like
+        self.npackets = self.classifreq * (1 / samplerate) * (1 / datarate)
 
     def receive(self, channel: str, message: Message):
         logging.debug(f"receiving data from channel {channel}")
