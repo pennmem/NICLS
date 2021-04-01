@@ -7,7 +7,7 @@ from nicls.data_logger import DataPoint, get_logger
 from nicls.configuration import Config
 from nicls.biosemi_listener import BioSemiListener
 from nicls.classifier import Classifier
-from nicls.pubsub import dispatcher
+from nicls.pubsub import Subscriber 
 import logging
 
 
@@ -94,7 +94,7 @@ class TaskServer:
         await TaskConnection(reader, writer).listen()
 
 
-class TaskConnection:
+class TaskConnection(Subscriber):
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
@@ -162,7 +162,7 @@ class TaskConnection:
                                      Config.classifier.samplerate,
                                      Config.classifier.datarate,
                                      Config.classifier.classiffreq)
-        dispatcher.connect(self.classifier_receiver, sender=self.classifier.publisher_id)
+        self.subscribe(self.classifier_receiver, self.classifier.publisher_id)
 
         biosemi_connect = self.biosemi_source.connect()
         await biosemi_connect

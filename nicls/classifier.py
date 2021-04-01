@@ -1,6 +1,6 @@
 from collections import deque
 from nicls.data_logger import get_logger, Counter
-from nicls.pubsub import dispatcher, Publisher
+from nicls.pubsub import Publisher, Subscriber
 import asyncio
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
@@ -9,7 +9,7 @@ import logging
 import time
 
 
-class Classifier(Publisher):
+class Classifier(Publisher, Subscriber):
     # Create counters
 
     def __init__(self, biosemi_publisher_id, bufferlen=None,
@@ -21,7 +21,7 @@ class Classifier(Publisher):
         
         # Subscribe to data source(s))
         logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
-        dispatcher.connect(self.biosemi_receiver, sender=biosemi_publisher_id)
+        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
         self._enabled = True
 
         # convert seconds to data packets
@@ -32,7 +32,6 @@ class Classifier(Publisher):
     def biosemi_receiver(self, message, **kwargs):
         # TODO: check this is data and not 'error' or some such
         self.ring_buf.append(message)
-        logging.info("data added")
         logging.info("fitting data")
         # i = self.class_id.GrabAndIncrement()
         asyncio.create_task(self.fit())  # Task not awaited
@@ -61,8 +60,7 @@ class Classifier(Publisher):
                 executor, self.load, np.array(list(self.ring_buf))
             )
         # self.check_submitted(this_id)
-        logging.debug(f"publishing classifier result {result}")
-        dispatcher.send(sender=self.publisher_id, message=result)
+        self.publish(result, log=True)
         # self.submitted_id.GrabAndIncrement()
 
     def enable(self):
