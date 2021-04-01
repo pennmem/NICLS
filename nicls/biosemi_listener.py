@@ -5,8 +5,8 @@ import numpy as np
 import logging
 import concurrent
 
-
-SAMPLES = 8
+# samples / channel, width of bytes
+SAMPLES = 16
 WIDTH = 3
 
 class BioSemiListener(Publisher):
@@ -34,7 +34,8 @@ class BioSemiListener(Publisher):
             # NOTE: this may need to handle incomplete packets
             try:
                 data = await self.reader.readexactly(
-                    self.channels * SAMPLES * WIDTH)
+                    self.channels * SAMPLES * WIDTH
+                    )
             except asyncio.IncompleteReadError as e:
                 # TODO
                 logging.warning(e)

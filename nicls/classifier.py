@@ -16,25 +16,37 @@ class Classifier(Publisher, Subscriber):
                  samplerate=None, datarate=None, classiffreq=None):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
-        # self.class_id = Counter()
-        # self.submitted_id = Counter()
-        
+
         # Subscribe to data source(s))
         logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
         self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
         self._enabled = True
-
         # convert seconds to data packets
+        # Joey: I think this might be wrong as Connor wrote it
+        buffer_packets = int(bufferlen * (1 / samplerate) * (1 / datarate))
         self.ring_buf = deque(
-            maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
+            maxlen=buffer_packets
         )
+        # classifreq is a frequency, i.e. classifications / second
+        # datarate is number of samples per tcp data packet
+        # samplerate is samples / second
+        # need a conversion to packets per classification, something like:
+        # packets / class = (packets/sample)*(samples/s)*(s/class)
+
+        self.npackets = int((1 / datarate) * samplerate * (1 / classifreq))
+
+        # make counter to track how many packets have arrived
+        self.packet_count = 0
 
     def biosemi_receiver(self, message, **kwargs):
+        self.packet_count += 1
         # TODO: check this is data and not 'error' or some such
         self.ring_buf.append(message)
         logging.info("fitting data")
-        # i = self.class_id.GrabAndIncrement()
-        asyncio.create_task(self.fit())  # Task not awaited
+        # only fit if we have a full buffer, skip npackets to avoid
+        # launching too many processes 
+        if ((self.packet_count % self.npackets == 0) & (self.packet_count>=buffer_packets)):
+          asyncio.create_task(self.fit())  # Task not awaited
 
     def load(self, data):
         # the loading here should construct the full processing chain,
@@ -46,7 +58,7 @@ class Classifier(Publisher, Subscriber):
         print(f"classification took {time.time()-t} seconds")
         return result
 
-    # Want to pass in to fit something that will help track
+    # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
     async def fit(self):
@@ -59,16 +71,11 @@ class Classifier(Publisher, Subscriber):
             result = await loop.run_in_executor(
                 executor, self.load, np.array(list(self.ring_buf))
             )
-        # self.check_submitted(this_id)
         self.publish(result, log=True)
-        # self.submitted_id.GrabAndIncrement()
+
 
     def enable(self):
         self._enabled = True
 
     def disable(self):
         self._enabled = False
-
-    # def check_submitted(self, this_id):
-    #     if not this_id - self.submitted_id.GrabAndIncrement() == 1:
-    #         raise ValueError("Trying to publish out of order")
