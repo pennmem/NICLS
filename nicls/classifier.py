@@ -1,6 +1,6 @@
-from nicls.messages import MessageClient, get_broker, Message
 from collections import deque
 from nicls.data_logger import get_logger, Counter
+from nicls.pubsub import Publisher, Subscriber
 import asyncio
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
@@ -9,24 +9,22 @@ import logging
 import time
 
 
-class Classifier(MessageClient):
-    def __init__(self, source_channel, bufferlen=None,
-                 samplerate=None, datarate=None, classiffreq=None):
-        logging.info("initializing classifier")
-        super().__init__()
-        logging.info(
-            f"subscribing classifier to data on channel {source_channel}"
-        )
-        # Subscribe to data source, but don't log data packets
-        get_broker().subscribe(source_channel, self, log=False)
-        self.source_channel = source_channel
-        self._enabled = True
+class Classifier(Publisher, Subscriber):
+    # Create counters
 
+    def __init__(self, biosemi_publisher_id, bufferlen=None,
+                 samplerate=None, datarate=None, classiffreq=None):
+        super().__init__("CLASSIFIER")
+        logging.info("initializing classifier")
+
+        # Subscribe to data source(s))
+        logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
+        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
+        self._enabled = True
         # convert seconds to data packets
         # Joey: I think this might be wrong as Connor wrote it
         buffer_packets = int(bufferlen * (1 / samplerate) * (1 / datarate))
-        logging.debug("initializing data queue")
-        self.queue = deque(
+        self.ring_buf = deque(
             maxlen=buffer_packets
         )
         # classifreq is a frequency, i.e. classifications / second
@@ -40,20 +38,15 @@ class Classifier(MessageClient):
         # make counter to track how many packets have arrived
         self.packet_count = 0
 
-    def receive(self, channel: str, message: Message):
-        logging.debug(f"receiving data from channel {channel}")
-        if (channel == self.source_channel) & (self._enabled):
-        	self.packet_count += 1
-            # TODO: check this is data and not 'error' or some such
-
-            # for a fixed length queue, this implicitly includes a popleft
-            self.queue.append(message.payload)
-            logging.info("data added")
-            logging.info("fitting data")
-            # only fit if we have a full buffer, skip npackets to avoid
-            # launching too many processes 
-            if ((self.packet_count % self.npackets == 0)&(self.packet_count>=buffer_packets)):
-	            fit_task = asyncio.create_task(self.fit())
+    def biosemi_receiver(self, message, **kwargs):
+        self.packet_count += 1
+        # TODO: check this is data and not 'error' or some such
+        self.ring_buf.append(message)
+        logging.info("fitting data")
+        # only fit if we have a full buffer, skip npackets to avoid
+        # launching too many processes 
+        if ((self.packet_count % self.npackets == 0) & (self.packet_count>=buffer_packets)):
+          asyncio.create_task(self.fit())  # Task not awaited
 
     def load(self, data):
         # the loading here should construct the full processing chain,
@@ -65,7 +58,7 @@ class Classifier(MessageClient):
         print(f"classification took {time.time()-t} seconds")
         return result
 
-    # Want to pass in to fit something that will help track
+    # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
     async def fit(self):
@@ -74,14 +67,12 @@ class Classifier(MessageClient):
             # TODO: while not cancelled
 
             # TODO: give this data
-            # something involving the queue
+            # something involving the ring buffer
             result = await loop.run_in_executor(
-                executor, self.load, np.array(list(self.queue))
+                executor, self.load, np.array(list(self.ring_buf))
             )
-        logging.debug(
-            f"publishing classifier result {result} to {self.id}"
-        )
-        get_broker().publish(self.id, Message(self.id, result))
+        self.publish(result, log=True)
+
 
     def enable(self):
         self._enabled = True

@@ -1,5 +1,5 @@
 import asyncio
-from nicls.messages import MessageClient, Message, get_broker
+from nicls.pubsub import Publisher
 from functools import partial
 import numpy as np
 import logging
@@ -9,27 +9,19 @@ import concurrent
 SAMPLES = 16
 WIDTH = 3
 
-
-class BioSemiListener(MessageClient):
+class BioSemiListener(Publisher):
     def __init__(self, host, port, channels):
-        super().__init__()
-
+        super().__init__("BIOSEMI")
         self.host = host
         self.port = port
         self.channels = channels
-
-    def receive(self, channel: str, message: Message):
-        raise NotImplementedError(
-            "BioSemiListener blindly sends data until cancelled."
-            "It does not intend to subscribe to any channels."
-        )
 
     async def connect(self):
         logging.debug("attempting to connect biosemi")
         self.reader, self.writer = await asyncio.open_connection(self.host,
                                                                  self.port)
         logging.debug("connected to biosemi")
-        task = asyncio.create_task(self.listen())
+        asyncio.create_task(self.listen())  # Task not awaited
 
     async def listen(self):
         ''' Read packets of data from the biosemi system and
@@ -49,8 +41,7 @@ class BioSemiListener(MessageClient):
                 logging.warning(e)
                 print(e)
 
-            get_broker().publish(self.id, Message(self.id, self.parse(data)))
-            logging.debug(f"publishing data to channel {self.id}")
+            self.publish(self.parse(data), log=True, log_msg="data")
 
     def parse(self, data: bytes):
         ''' Data format is 24 bytes per channel, repeated 8 times,
