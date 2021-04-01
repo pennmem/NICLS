@@ -1,4 +1,3 @@
-from nicls.messages import MessageClient, get_broker, Message
 from collections import deque
 from nicls.data_logger import get_logger, Counter
 import asyncio
@@ -8,41 +7,36 @@ import numpy as np
 import logging
 import time
 
+from nicls.pubsub import dispatcher, CLASSIFIER, BIOSEMI
 
-class Classifier(MessageClient):
+
+class Classifier:
     # Create counters
 
     def __init__(self, source_channel, bufferlen=None,
                  samplerate=None, datarate=None, classiffreq=None):
         logging.info("initializing classifier")
-        super().__init__()
         # self.class_id = Counter()
         # self.submitted_id = Counter()
-        logging.info(
-            f"subscribing classifier to data on channel {source_channel}"
-        )
-        # Subscribe to data source, but don't log data packets
-        get_broker().subscribe(source_channel, self, log=False)
+        
+        # Subscribe to data source(s))
+        logging.info(f"subscribing classifier to data on channel {source_channel}")
+        dispatcher.connect(self.biosemi_receiver, sender=BIOSEMI)
         self.source_channel = source_channel
         self._enabled = True
 
         # convert seconds to data packets
-        logging.debug("initializing data queue")
-        self.queue = deque(
+        self.ring_buf = deque(
             maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
         )
 
-    def receive(self, channel: str, message: Message):
-        logging.debug(f"receiving data from channel {channel}")
-        if (channel == self.source_channel) & (self._enabled):
-            # TODO: check this is data and not 'error' or some such
-
-            # for a fixed length queue, this implicitly includes a popleft
-            self.queue.append(message.payload)
-            logging.info("data added")
-            logging.info("fitting data")
-            # i = self.class_id.GrabAndIncrement()
-            fit_task = asyncio.create_task(self.fit())
+    def biosemi_receiver(self, message, **kwargs):
+        # TODO: check this is data and not 'error' or some such
+        self.ring_buf.append(message)
+        logging.info("data added")
+        logging.info("fitting data")
+        # i = self.class_id.GrabAndIncrement()
+        fit_task = asyncio.create_task(self.fit())
 
     def load(self, data):
         # the loading here should construct the full processing chain,
@@ -63,15 +57,13 @@ class Classifier(MessageClient):
             # TODO: while not cancelled
 
             # TODO: give this data
-            # something involving the queue
+            # something involving the ring buffer
             result = await loop.run_in_executor(
-                executor, self.load, np.array(list(self.queue))
+                executor, self.load, np.array(list(self.ring_buf))
             )
         # self.check_submitted(this_id)
-        logging.debug(
-            f"publishing classifier result {result} to {self.id}"
-        )
-        get_broker().publish(self.id, Message(self.id, result))
+        logging.debug(f"publishing classifier result {result}")
+        dispatcher.send(sender=CLASSIFIER, message=result)
         # self.submitted_id.GrabAndIncrement()
 
     def enable(self):
