@@ -15,7 +15,7 @@ async def main():
     # test systems that imitate the real behavior of the ActiView software
     # and UnityEPL tasks
     async with DummyBiosemi(Config.biosemi.host, \
-                           Config.biosemi.port-5, \
+                           Config.biosemi.port, \
                            Config.biosemi.channels) as biosemi:
         task = asyncio.create_task(DummyTask(Config.task.host, Config.task.port).connect())
         await asyncio.gather(task, nicls_server) # add biosemi back
