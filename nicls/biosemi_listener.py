@@ -42,7 +42,8 @@ class BioSemiListener(MessageClient):
             # NOTE: this may need to handle incomplete packets
             try:
                 data = await self.reader.readexactly(
-                    self.channels * SAMPLES * WIDTH)
+                    self.channels * SAMPLES * WIDTH
+                    )
             except asyncio.IncompleteReadError as e:
                 # TODO
                 logging.warning(e)

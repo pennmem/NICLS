@@ -8,12 +8,12 @@
     "host": "127.0.0.1",
     "port": 8888,
     "channels": 128,
-    "samplerate":1000
+    "samplerate":2048
   },
   "classifier": {
-    "samplerate":1000,
+    "samplerate":2048,
     "bufferlen":10000,
-    "datarate":1, 
+    "datarate":16, 
     "classiffreq":10
   }
 }

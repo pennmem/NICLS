@@ -10,14 +10,10 @@ import time
 
 
 class Classifier(MessageClient):
-    # Create counters
-
     def __init__(self, source_channel, bufferlen=None,
                  samplerate=None, datarate=None, classiffreq=None):
         logging.info("initializing classifier")
         super().__init__()
-        # self.class_id = Counter()
-        # self.submitted_id = Counter()
         logging.info(
             f"subscribing classifier to data on channel {source_channel}"
         )
@@ -27,25 +23,37 @@ class Classifier(MessageClient):
         self._enabled = True
 
         # convert seconds to data packets
+        # Joey: I think this might be wrong as Connor wrote it
+        buffer_packets = int(bufferlen * (1 / samplerate) * (1 / datarate))
         logging.debug("initializing data queue")
         self.queue = deque(
-            maxlen=int(bufferlen * (1 / samplerate) * (1 / datarate))
+            maxlen=buffer_packets
         )
-        # classifreq is a frequency, i.e. samples/second
-        # need a conversion, something like
-        self.npackets = self.classifreq * (1 / samplerate) * (1 / datarate)
+        # classifreq is a frequency, i.e. classifications / second
+        # datarate is number of samples per tcp data packet
+        # samplerate is samples / second
+        # need a conversion to packets per classification, something like:
+        # packets / class = (packets/sample)*(samples/s)*(s/class)
+
+        self.npackets = int((1 / datarate) * samplerate * (1 / classifreq))
+
+        # make counter to track how many packets have arrived
+        self.packet_count = 0
 
     def receive(self, channel: str, message: Message):
         logging.debug(f"receiving data from channel {channel}")
         if (channel == self.source_channel) & (self._enabled):
+        	self.packet_count += 1
             # TODO: check this is data and not 'error' or some such
 
             # for a fixed length queue, this implicitly includes a popleft
             self.queue.append(message.payload)
             logging.info("data added")
             logging.info("fitting data")
-            # i = self.class_id.GrabAndIncrement()
-            fit_task = asyncio.create_task(self.fit())
+            # only fit if we have a full buffer, skip npackets to avoid
+            # launching too many processes 
+            if ((self.packet_count % self.npackets == 0)&(self.packet_count>=buffer_packets)):
+	            fit_task = asyncio.create_task(self.fit())
 
     def load(self, data):
         # the loading here should construct the full processing chain,
@@ -70,19 +78,13 @@ class Classifier(MessageClient):
             result = await loop.run_in_executor(
                 executor, self.load, np.array(list(self.queue))
             )
-        # self.check_submitted(this_id)
         logging.debug(
             f"publishing classifier result {result} to {self.id}"
         )
         get_broker().publish(self.id, Message(self.id, result))
-        # self.submitted_id.GrabAndIncrement()
 
     def enable(self):
         self._enabled = True
 
     def disable(self):
         self._enabled = False
-
-    # def check_submitted(self, this_id):
-    #     if not this_id - self.submitted_id.GrabAndIncrement() == 1:
-    #         raise ValueError("Trying to publish out of order")
