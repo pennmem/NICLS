@@ -1,5 +1,5 @@
 import asyncio
-from nicls.pubsub import dispatcher, BIOSEMI, Publisher
+from nicls.pubsub import dispatcher, Publisher
 from functools import partial
 import numpy as np
 import logging
@@ -11,7 +11,7 @@ WIDTH = 3
 
 class BioSemiListener(Publisher):
     def __init__(self, host, port, channels):
-        super().__init__(BIOSEMI)
+        super().__init__("BIOSEMI")
         self.host = host
         self.port = port
         self.channels = channels
@@ -21,7 +21,7 @@ class BioSemiListener(Publisher):
         self.reader, self.writer = await asyncio.open_connection(self.host,
                                                                  self.port)
         logging.debug("connected to biosemi")
-        task = asyncio.create_task(self.listen())
+        asyncio.create_task(self.listen())  # Task not awaited
 
     async def listen(self):
         ''' Read packets of data from the biosemi system and
@@ -40,8 +40,7 @@ class BioSemiListener(Publisher):
                 logging.warning(e)
                 print(e)
 
-            dispatcher.send(sender=BIOSEMI, message=self.parse(data))
-            #dispatcher.send(sender=self.uid, message=self.parse(data))
+            dispatcher.send(sender=self.publisher_id, message=self.parse(data))
             logging.debug(f"biosemi publishing data")
 
     def parse(self, data: bytes):

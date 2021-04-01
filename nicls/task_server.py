@@ -3,14 +3,13 @@ import datetime
 import json
 from collections import deque
 import concurrent
-from nicls.data_logger import DataPoint
+from nicls.data_logger import DataPoint, get_logger
 from nicls.configuration import Config
-from nicls.data_logger import get_logger
 from nicls.biosemi_listener import BioSemiListener
 from nicls.classifier import Classifier
+from nicls.pubsub import dispatcher
 import logging
 
-from nicls.pubsub import dispatcher, CLASSIFIER 
 
 
 class TaskMessage(DataPoint):
@@ -103,7 +102,7 @@ class TaskConnection:
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
         out_message = TaskMessage("classifier", **{"label": message})
-        asyncio.create_task(self.send(bytes(out_message)))  # This task is not awaited
+        asyncio.create_task(self.send(bytes(out_message)))  # Task not awaited
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -151,20 +150,20 @@ class TaskConnection:
 
     async def _run_configuration(self):
         # Setup Biosemi
-        self.data_source = BioSemiListener(Config.biosemi.host,
+        self.biosemi_source = BioSemiListener(Config.biosemi.host,
                                            Config.biosemi.port,
                                            Config.biosemi.channels)
 
         # Setup Classifier
         # Connor: TODO: if we use different classifier versions or the like,
         # we'll need subclasses or a factory
-        self.classifier = Classifier(self.data_source.uid,
+        self.classifier = Classifier(self.biosemi_source.publisher_id,
                                      Config.classifier.bufferlen,
                                      Config.classifier.samplerate,
                                      Config.classifier.datarate,
                                      Config.classifier.classiffreq)
-        dispatcher.connect(self.classifier_receiver, sender=CLASSIFIER)
+        dispatcher.connect(self.classifier_receiver, sender=self.classifier.publisher_id)
 
-        biosemi_connect = self.data_source.connect()
+        biosemi_connect = self.biosemi_source.connect()
         await biosemi_connect
         logging.info("task server connected to biosemi listener")

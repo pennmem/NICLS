@@ -1,15 +1,14 @@
 from django.dispatch import Signal
 
-TASK_SERVER = "task_server"
-CLASSIFIER = "classifier"
-BIOSEMI = "biosemi"
-
 dispatcher = Signal()
 
 class Publisher:
-    def __init__(self, uid=None):
-        if uid:
-            self.uid = uid
+    def __init__(self, publisher_id=None):
+        if publisher_id:
+            self.publisher_id = publisher_id
         else:
-            self.uid = str(uuid4().hex)
+            self.publisher_id = str(uuid4().hex)
 
+# JPB: TODO: Consider making publish function that automatically has sender
+#    def publish(self, message, **kwargs):
+#        dispatcher.send(sender=self.publisher_id, message=message, **kwargs)
