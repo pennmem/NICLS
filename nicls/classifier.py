@@ -16,11 +16,6 @@ class Classifier(Publisher, Subscriber):
                  samplerate=None, datarate=None, classiffreq=None):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
-
-        # Subscribe to data source(s))
-        logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
-        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
-        self._enabled = True
         # convert seconds to data packets
         # Joey: I think this might be wrong as Connor wrote it
         buffer_packets = int(bufferlen * (1 / samplerate) * (1 / datarate))
@@ -33,10 +28,15 @@ class Classifier(Publisher, Subscriber):
         # need a conversion to packets per classification, something like:
         # packets / class = (packets/sample)*(samples/s)*(s/class)
 
-        self.npackets = int((1 / datarate) * samplerate * (1 / classifreq))
+        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq))
 
         # make counter to track how many packets have arrived
         self.packet_count = 0
+
+        # Subscribe to data source(s))
+        logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
+        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
+        self._enabled = True
 
     def biosemi_receiver(self, message, **kwargs):
         self.packet_count += 1

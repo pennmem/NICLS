@@ -18,7 +18,7 @@ async def main():
                            Config.biosemi.port, \
                            Config.biosemi.channels) as biosemi:
         task = asyncio.create_task(DummyTask(Config.task.host, Config.task.port).connect())
-        await asyncio.gather(task, nicls_server) # add biosemi back
+        await asyncio.gather(task, biosemi, nicls_server)
 
 if __name__ == "__main__":
     asyncio.run(main(), debug=True)
