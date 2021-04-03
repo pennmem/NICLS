@@ -10,12 +10,24 @@ import time
 
 
 class Classifier(Publisher, Subscriber):
-    # Create counters
+    # The process pool is static so that it can be used across all classifier classes
+    # Also, because the asyncio doesn't allow it be a member variable
+    _process_pool_executor = None
+    _cores = 1
+
+    @staticmethod
+    def setup_process_pool(cores=1):
+        if Classifier._process_pool_executor == None:
+            Classifier._process_pool_executor = ProcessPoolExecutor(max_workers=cores)
+            Classifier.cores = cores
 
     def __init__(self, biosemi_publisher_id, secs_of_data_buffered=None,
-                 samplerate=None, datarate=None, classiffreq=None, cores=1):
+                 samplerate=None, datarate=None, classiffreq=None):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
+
+        if Classifier._process_pool_executor == None:
+            raise RuntimeError('Classifier process pool never set up. Please use "Classifier.setup_process_pool(...)"')
 
         self._enabled = True
 
@@ -28,7 +40,7 @@ class Classifier(Publisher, Subscriber):
         # samplerate is samples / second
         # need a conversion to packets per classification:
         # packets / classification = (packets/sample)*(samples/s)*(s/classification)
-        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq) * (1 / cores))
+        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq) * (1 / Classifier.cores))
         self.packet_count = 0  # track how many packets have arrived
 
         # Subscribe to data source(s))
@@ -63,9 +75,8 @@ class Classifier(Publisher, Subscriber):
     async def fit(self):
         logging.info("fitting data")
         loop = asyncio.get_running_loop() #JPB: TODO: Catch exception?
-        process_pool_executor = ProcessPoolExecutor(max_workers=1)
         result = await loop.run_in_executor(
-            process_pool_executor, self.load, np.array(list(self.ring_buf))
+            Classifier._process_pool_executor, self.load, np.array(list(self.ring_buf))
         )
         self.publish(result, log=True)
 

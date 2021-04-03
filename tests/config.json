@@ -14,7 +14,9 @@
     "samplerate":2048,
     "secsdatabuffered":0.016,
     "datarate":16, 
-    "classiffreq":10,
+    "classiffreq":10
+  },
+  "system":{
 	"cores":5
   }
 }
