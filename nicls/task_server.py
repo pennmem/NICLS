@@ -158,10 +158,11 @@ class TaskConnection(Subscriber):
         # Connor: TODO: if we use different classifier versions or the like,
         # we'll need subclasses or a factory
         self.classifier = Classifier(self.biosemi_source.publisher_id,
-                                     Config.classifier.bufferlen,
+                                     Config.classifier.secsdatabuffered,
                                      Config.classifier.samplerate,
                                      Config.classifier.datarate,
-                                     Config.classifier.classiffreq)
+                                     Config.classifier.classiffreq,
+                                     Config.classifier.cores)
         self.subscribe(self.classifier_receiver, self.classifier.publisher_id)
 
         biosemi_connect = self.biosemi_source.connect()
