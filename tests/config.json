@@ -12,8 +12,11 @@
   },
   "classifier": {
     "samplerate":2048,
-    "bufferlen":10000,
+    "secsdatabuffered":0.016,
     "datarate":16, 
     "classiffreq":10
+  },
+  "system":{
+	"cores":5
   }
 }

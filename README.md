@@ -8,6 +8,9 @@ main creates the TaskServer thread, EphysLogger thread (TODO), and DataLogger th
 ## Generate Installer
 ???
 
+## Setup
+pip install aiofiles django
+
 ## Tests
 1) Install the nicls module
 	pip install -e ./nicls 

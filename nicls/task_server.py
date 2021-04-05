@@ -157,8 +157,9 @@ class TaskConnection(Subscriber):
         # Setup Classifier
         # Connor: TODO: if we use different classifier versions or the like,
         # we'll need subclasses or a factory
+        Classifier.setup_process_pool(Config.system.cores)
         self.classifier = Classifier(self.biosemi_source.publisher_id,
-                                     Config.classifier.bufferlen,
+                                     Config.classifier.secsdatabuffered,
                                      Config.classifier.samplerate,
                                      Config.classifier.datarate,
                                      Config.classifier.classiffreq)

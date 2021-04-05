@@ -10,43 +10,54 @@ import time
 
 
 class Classifier(Publisher, Subscriber):
-    # Create counters
+    # The process pool is static so that it can be used across all classifier classes
+    # Also, because the asyncio doesn't allow it be a member variable
+    _process_pool_executor = None
+    _cores = 1
 
-    def __init__(self, biosemi_publisher_id, bufferlen=None,
+    @staticmethod
+    def setup_process_pool(cores=1):
+        if Classifier._process_pool_executor == None:
+            Classifier._process_pool_executor = ProcessPoolExecutor(max_workers=cores)
+            Classifier.cores = cores
+
+    def __init__(self, biosemi_publisher_id, secs_of_data_buffered=None,
                  samplerate=None, datarate=None, classiffreq=None):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
-        # convert seconds to data packets
-        # Joey: I think this might be wrong as Connor wrote it
-        buffer_packets = int(bufferlen * (1 / samplerate) * (1 / datarate))
-        self.ring_buf = deque(
-            maxlen=buffer_packets
-        )
-        # classifreq is a frequency, i.e. classifications / second
-        # datarate is number of samples per tcp data packet
-        # samplerate is samples / second
-        # need a conversion to packets per classification, something like:
-        # packets / class = (packets/sample)*(samples/s)*(s/class)
 
-        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq))
+        if Classifier._process_pool_executor == None:
+            raise RuntimeError('Classifier process pool never set up. Please use "Classifier.setup_process_pool(...)"')
 
-        # make counter to track how many packets have arrived
-        self.packet_count = 0
-
-        # Subscribe to data source(s))
-        logging.info(f"subscribing classifier to data on channel {biosemi_publisher_id}")
-        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
         self._enabled = True
 
+        # convert seconds to data packets
+        buffer_len = int(secs_of_data_buffered * (1/datarate) * samplerate)
+        self.ring_buf = deque(maxlen=buffer_len)
+
+        # classiffreq is a frequency, i.e. classifications / second
+        # datarate is number of samples per tcp data packet
+        # samplerate is samples / second
+        # need a conversion to packets per classification:
+        # packets / classification = (packets/sample)*(samples/s)*(s/classification)
+        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq) * (1 / Classifier.cores))
+        self.packet_count = 0  # track how many packets have arrived
+
+        # Subscribe to data source(s))
+        logging.info(f"Subscribing classifier to data on channel {biosemi_publisher_id}")
+        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
+
     def biosemi_receiver(self, message, **kwargs):
-        self.packet_count += 1
         # TODO: check this is data and not 'error' or some such
         self.ring_buf.append(message)
-        logging.info("fitting data")
-        # only fit if we have a full buffer, skip npackets to avoid
-        # launching too many processes 
-        if ((self.packet_count % self.npackets == 0) & (self.packet_count>=buffer_packets)):
-          asyncio.create_task(self.fit())  # Task not awaited
+        # Skip npackets to avoid launching too many processes 
+        self.packet_count += 1
+        if ((self.packet_count % self.npackets == 0) and self._enabled):
+            # Only fit if we have a full buffer
+            if self.packet_count < self.ring_buf.maxlen:
+                logging.warning("Not enough biosemi data collected yet, please wait.")
+            else:
+                asyncio.create_task(self.fit())  # Task not awaited
 
     def load(self, data):
         # the loading here should construct the full processing chain,
@@ -62,15 +73,11 @@ class Classifier(Publisher, Subscriber):
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
     async def fit(self):
-        loop = asyncio.get_running_loop()
-        with ProcessPoolExecutor(max_workers=5) as executor:
-            # TODO: while not cancelled
-
-            # TODO: give this data
-            # something involving the ring buffer
-            result = await loop.run_in_executor(
-                executor, self.load, np.array(list(self.ring_buf))
-            )
+        logging.info("fitting data")
+        loop = asyncio.get_running_loop() #JPB: TODO: Catch exception?
+        result = await loop.run_in_executor(
+            Classifier._process_pool_executor, self.load, np.array(list(self.ring_buf))
+        )
         self.publish(result, log=True)
 
 
