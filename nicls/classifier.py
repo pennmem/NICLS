@@ -10,11 +10,11 @@ import time
 
 
 class Classifier(Publisher, Subscriber):
-    # The process pool is static so that it can be used across all classifier classes
-    # Also, because the asyncio doesn't allow it be a member variable
     _process_pool_executor = None
     _cores = 1
 
+    # The process pool is static so if we use more than one classifier 
+    # then all the objects will share the same process pool
     @staticmethod
     def setup_process_pool(cores=1):
         if Classifier._process_pool_executor == None:
