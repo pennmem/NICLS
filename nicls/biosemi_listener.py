@@ -1,9 +1,9 @@
 import asyncio
+import logging
+import numpy as np
+
 from nicls.pubsub import Publisher
 from functools import partial
-import numpy as np
-import logging
-import concurrent
 
 # samples / channel, width of bytes
 SAMPLES = 16
@@ -41,7 +41,7 @@ class BioSemiListener(Publisher):
                 logging.warning(e)
                 print(e)
 
-            self.publish(self.parse(data), log=True, log_msg="data")
+            self.publish(self.parse(data), log_msg="biosemi data")
 
     def parse(self, data: bytes):
         ''' Data format is 24 bytes per channel, repeated 8 times,

@@ -1,12 +1,13 @@
-from collections import deque
-from nicls.data_logger import get_logger, Counter
-from nicls.pubsub import Publisher, Subscriber
 import asyncio
 import multiprocessing
-from concurrent.futures import ProcessPoolExecutor
-import numpy as np
 import logging
 import time
+import numpy as np
+
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor
+from nicls.data_logger import get_logger, Counter
+from nicls.pubsub import Publisher, Subscriber
 
 
 class Classifier(Publisher, Subscriber):
@@ -20,6 +21,8 @@ class Classifier(Publisher, Subscriber):
         if Classifier._process_pool_executor == None:
             Classifier._process_pool_executor = ProcessPoolExecutor(max_workers=cores)
             Classifier.cores = cores
+        else:
+            raise RuntimeError(f"Process pool already set up with {Classifier._cores} workers")
 
     def __init__(self, biosemi_publisher_id, secs_of_data_buffered=None,
                  samplerate=None, datarate=None, classiffreq=None):
@@ -44,8 +47,7 @@ class Classifier(Publisher, Subscriber):
         self.packet_count = 0  # track how many packets have arrived
 
         # Subscribe to data source(s))
-        logging.info(f"Subscribing classifier to data on channel {biosemi_publisher_id}")
-        self.subscribe(self.biosemi_receiver, biosemi_publisher_id)
+        self.subscribe(self.biosemi_receiver, biosemi_publisher_id, name_in_log="Classifier")
 
     def biosemi_receiver(self, message, **kwargs):
         # TODO: check this is data and not 'error' or some such

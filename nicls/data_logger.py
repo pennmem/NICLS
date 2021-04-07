@@ -3,8 +3,8 @@ import time
 import json
 from nicls.configuration import Config
 from multiprocessing import Queue, Value
-import concurrent
 import asyncio
+import aiofiles
 from typing import Union
 import os
 import logging
@@ -89,15 +89,8 @@ class DataLogger:
 
         self.data_queue.put(data)
 
-    def _write(self):
-        with open(self.filename, 'a+') as f:
-            while not self.data_queue.empty():
-                f.write(str(self.data_queue.get_nowait()))
-
     async def write(self):
-        '''
-        :return: None
-        '''
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(executor, self._write)
+        async with aiofiles.open(self.filename, mode='a+') as f:
+            while not self.data_queue.empty():
+                await f.write(str(self.data_queue.get_nowait()))
+

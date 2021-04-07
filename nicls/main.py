@@ -1,9 +1,10 @@
 import asyncio
+import logging
+
 from nicls.task_server import TaskServer
 from nicls.configuration import load_configuration, Config
 from nicls.data_logger import get_logger
 from nicls.utils import repeated_invoke
-import logging
 
 
 async def main():
