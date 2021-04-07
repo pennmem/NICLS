@@ -43,27 +43,29 @@ When a data source publishes new data that arrived, this is the order of events
 	1. send the the results to the task itself and finish
 
 ### Design Diagram
-<Name of file here>
+JPB: TODO: Add design file here
 
-## Test Arch
+## Test Architecture
 ### Option 1
 main creates the nicls server, a fake biosemi data source, and a fake task data source
 ### Option 2
 main2 creates the nicls server and a fake task data source
 A real biosemi source is used
 
-## Generate Installer
-???
+## How To Generate Installer
+JPB: TODO: Add installer instructions here
 
-## Setup
-pip install numpy aiofiles django
-
-## Tests
-1) Install the nicls module
+## How To Setup
+1. pip install numpy aiofiles django
+1. install the nicls module
 	pip install -e ./nicls 
-2) Run the tests
+
+## How To Run Tests
+1. install the nicls module
+	pip install -e ./nicls 
+1. run the tests
 	cd tests
 	python3 main.py
-3) Check Results (more description here)
+1. check results (JPB: TODO: add more description here)
 	Print to screen
 	Create data folder and log the data there
