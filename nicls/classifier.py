@@ -20,7 +20,7 @@ class Classifier(Publisher, Subscriber):
     def setup_process_pool(cores=1):
         if Classifier._process_pool_executor == None:
             Classifier._process_pool_executor = ProcessPoolExecutor(max_workers=cores)
-            Classifier.cores = cores
+            Classifier._cores = cores
         else:
             raise RuntimeError(f"Process pool already set up with {Classifier._cores} workers")
 
@@ -43,7 +43,7 @@ class Classifier(Publisher, Subscriber):
         # samplerate is samples / second
         # need a conversion to packets per classification:
         # packets / classification = (packets/sample)*(samples/s)*(s/classification)
-        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq) * (1 / Classifier.cores))
+        self.npackets = int((1 / datarate) * samplerate * (1 / classiffreq) * (1 / Classifier._cores))
         self.packet_count = 0  # track how many packets have arrived
 
         # Subscribe to data source(s))

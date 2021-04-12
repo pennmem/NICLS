@@ -1,14 +1,14 @@
+import json
 import asyncio
 import datetime
-import json
+import logging
+
 from collections import deque
 from nicls.data_logger import DataPoint, get_logger
 from nicls.configuration import Config
 from nicls.biosemi_listener import BioSemiListener
 from nicls.classifier import Classifier
 from nicls.pubsub import Subscriber 
-import logging
-
 
 
 class TaskMessage(DataPoint):
