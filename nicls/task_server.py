@@ -1,15 +1,14 @@
+import json
 import asyncio
 import datetime
-import json
+import logging
+
 from collections import deque
-import concurrent
 from nicls.data_logger import DataPoint, get_logger
 from nicls.configuration import Config
 from nicls.biosemi_listener import BioSemiListener
 from nicls.classifier import Classifier
 from nicls.pubsub import Subscriber 
-import logging
-
 
 
 class TaskMessage(DataPoint):
@@ -124,12 +123,16 @@ class TaskConnection(Subscriber):
             elif message.type == 'HEARTBEAT':
                 await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
             elif message.type == 'CONFIGURE':
-                if self._check_configuration(message.data):
-                    await self._run_configuration()
-                    await self.send(bytes(TaskMessage('CONFIGURE_OK')))
-                else:
+                try:
+                    if self._check_configuration(message.data):
+                        await self._run_configuration()
+                        await self.send(bytes(TaskMessage('CONFIGURE_OK')))
+                    else:
+                        # TODO: close connection
+                        await self.send(bytes(TaskMessage('ERROR_IN_CONFIG_FILE')))
+                except RuntimeError as e:
                     # TODO: close connection
-                    await self.send(bytes(TaskMessage('ERROR')))
+                    await self.send(bytes(TaskMessage('ERROR_IN_CONFIG_FILE')))
             elif message.type == "CLASSIFIER_ON":
                 self.classifier.enable()
             elif message.type == "CLASSIFIER_OFF":
@@ -163,8 +166,9 @@ class TaskConnection(Subscriber):
                                      Config.classifier.samplerate,
                                      Config.classifier.datarate,
                                      Config.classifier.classiffreq)
-        self.subscribe(self.classifier_receiver, self.classifier.publisher_id)
+        self.subscribe(self.classifier_receiver, self.classifier.publisher_id, name_in_log="TaskConnection")
 
-        biosemi_connect = self.biosemi_source.connect()
-        await biosemi_connect
+        # Connect to all of the sources
+        await self.biosemi_source.connect()
         logging.info("task server connected to biosemi listener")
+
