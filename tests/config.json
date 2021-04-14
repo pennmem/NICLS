@@ -12,9 +12,9 @@
   },
   "classifier": {
     "samplerate":2048,
-    "secsdatabuffered":0.016,
+    "secsdatabuffered":1,
     "datarate":16, 
-    "classiffreq":10
+    "classiffreq":1
   },
   "system":{
 	"cores":5

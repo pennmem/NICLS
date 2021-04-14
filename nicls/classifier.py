@@ -8,7 +8,6 @@ import numpy as np
 import logging
 import time
 
-
 class Classifier(Publisher, Subscriber):
     _process_pool_executor = None
     _cores = 1
