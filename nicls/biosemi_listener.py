@@ -1,10 +1,9 @@
 import asyncio
+import logging
+import numpy as np
+
 from nicls.pubsub import Publisher
 from functools import partial
-import numpy as np
-import logging
-import concurrent
-import matplotlib.pyplot as plt
 
 # samples / channel, width of bytes
 SAMPLES = 16
@@ -41,14 +40,8 @@ class BioSemiListener(Publisher):
                 # TODO
                 logging.warning(e)
                 print(e)
+            self.publish(self.parse(data), log_msg="biosemi data")
 
-            self.publish(self.parse(data), log=True, log_msg="data")
-            # TODO: REMOVE, just for testing
-            plt.figure()
-            print("trying to plot")
-            plt.plot(range(np.shape(self.parse(data))[0]), np.mean(self.parse(data), 1))
-            plt.savefig("../data/test_plot.png")
-            print("plotted")
     def parse(self, data: bytes):
         ''' Data format is 24 bytes per channel, repeated 8 times,
         so this function cuts this into a matrix with shape
