@@ -9,7 +9,6 @@ from concurrent.futures import ProcessPoolExecutor
 from nicls.data_logger import get_logger, Counter
 from nicls.pubsub import Publisher, Subscriber
 
-
 class Classifier(Publisher, Subscriber):
     _process_pool_executor = None
     _cores = 1

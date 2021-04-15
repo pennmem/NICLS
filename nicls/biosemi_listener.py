@@ -40,7 +40,6 @@ class BioSemiListener(Publisher):
                 # TODO
                 logging.warning(e)
                 print(e)
-
             self.publish(self.parse(data), log_msg="biosemi data")
 
     def parse(self, data: bytes):
@@ -55,4 +54,4 @@ class BioSemiListener(Publisher):
         # before being mapped. apparently poorly defined.
         data = map(partial(int.from_bytes, byteorder="little", signed=True),
                    [data[i:i + WIDTH] for i in range(0, len(data), WIDTH)])
-        return np.array(list(data)).reshape(self.channels, SAMPLES)
+        return np.array(list(data)).reshape(SAMPLES, self.channels)
