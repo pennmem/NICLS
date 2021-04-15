@@ -1,10 +1,14 @@
+import json
 import asyncio
 import datetime
-import json
+import logging
+
 from collections import deque
-from nicls.data_logger import DataPoint
-from nicls.messages import MessageClient, Message, get_broker
-from nicls.data_logger import get_logger
+from nicls.data_logger import DataPoint, get_logger
+from nicls.configuration import Config
+from nicls.biosemi_listener import BioSemiListener
+from nicls.classifier import Classifier
+from nicls.pubsub import Subscriber 
 
 
 class TaskMessage(DataPoint):
@@ -12,7 +16,7 @@ class TaskMessage(DataPoint):
     def __init__(self, ev_type, time=None, sent=False, **kwargs):
         super().__init__(time=time, **kwargs)
         self.type = ev_type
-        self.sent=sent
+        self.sent = sent
 
     @staticmethod
     def from_bytes(message):
@@ -20,8 +24,9 @@ class TaskMessage(DataPoint):
 
         try:
             msgid = raw_data.pop("id")
-            msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop("time"), sent=True, **raw_data)
-        except KeyError as e:
+            msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
+                "time"), sent=True, **raw_data.pop("data"))
+        except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
         msg.id = msgid
@@ -32,9 +37,10 @@ class TaskMessage(DataPoint):
             # FIXME log sent, but don't send over network
             {
                 "type": self.type,
-                "time": self.time.timestamp() if isinstance(self.time, datetime.datetime) else self.time,
+                "time": self.time.timestamp() if
+                isinstance(self.time, datetime.datetime) else self.time,
                 "data": self.data,
-                "id":   self.id
+                "id": self.id
             }
         ) + "\n"
 
@@ -66,29 +72,36 @@ class TaskServer:
             # TODO: warn
             return self.server.serve_forever()
 
-        self.server = await asyncio.start_server(TaskServer._accept_connection, self.host, self.port)
+        logging.info("starting task server")
+        self.server = await asyncio.start_server(TaskServer._accept_connection,
+                                                 self.host,
+                                                 self.port)
         return self.server.serve_forever()
 
     async def __aexit__(self, exc_type, exc, tb):
+        logging.info("closing server")
         self.server.close()
         await self.server.wait_closed()
         self.server = None
+        logging.info("server closed successfully")
 
     @staticmethod
     async def _accept_connection(reader, writer):
+        logging.debug("accepting connection")
+        logging.debug("reader: " + str(reader))
+        logging.debug("writer: " + str(writer))
         await TaskConnection(reader, writer).listen()
 
 
-class TaskConnection(MessageClient):
+class TaskConnection(Subscriber):
     def __init__(self, reader, writer):
-        super().__init__()
-
         self.reader = reader
         self.writer = writer
 
-    def receive(self, channel: str, message: Message):
-        # TODO
-        pass
+    def classifier_receiver(self, message, **kwargs):
+        logging.info(f"task server received classifier result: {message}")
+        out_message = TaskMessage("classifier", **{"label": message})
+        asyncio.create_task(self.send(out_message))  # Task not awaited
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -104,32 +117,63 @@ class TaskConnection(MessageClient):
             message = TaskMessage.from_bytes(message)
             get_logger().log(message)
 
+            # JPB: TODO: Convert these to enums
             if message.type == 'CONNECTED':
-                await self.send(bytes(TaskMessage('CONNECTED_OK')))
-
+                await self.send(TaskMessage('CONNECTED_OK'))
+            elif message.type == 'HEARTBEAT':
+                await self.send(TaskMessage('HEARTBEAT_OK'))
             elif message.type == 'CONFIGURE':
                 if self._check_configuration(message.data):
-
-                    # TODO: set up classifier, connect to biosemi
-                    # if we use different classifier versions or the like,
-                    # we'll need subclasses or a factory
-                    # self.data_source = BioSemiListener(Config.biosemi.host,
-                    #                                    Config.biosemi.port,
-                    #                                    Config.biosemi.channels)
-                    # self.classifier = Classifier(self.data_source.id, Config.classifier)
-                    # get_broker().subscribe(self.classifier.id)
-                    await self.send(bytes(TaskMessage('CONFIGURE_OK')))
+                    try:
+                        await self._run_configuration()
+                        await self.send(TaskMessage('CONFIGURE_OK'))
+                    except RuntimeError as e:
+                        await self.close(TaskMessage('ERROR_IN_CONFIGURATION'))
+                        raise e
                 else:
-                    # TODO: close connection
-                    await self.send(bytes(TaskMessage('ERROR')))
-
-            elif message.type == 'HEARTBEAT':
-                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
+                    await self.close(TaskMessage('ERROR_IN_CONFIG_FILE'))
+            elif message.type == "CLASSIFIER_ON":
+                self.classifier.enable()
+            elif message.type == "CLASSIFIER_OFF":
+                self.classifier.disable()
 
     async def send(self, message: TaskMessage):
-        self.writer.write(message)
+        self.writer.write(bytes(message))
+        get_logger().log(message)
+        # JPB: This has a bug that drain doesn't actually wait till evrything is sent
+        # This problem is particularly bad when the program finishes when the drain is low enough but the buffer isn't empty
+        # Check Bug #3 on this webpage: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#example-3-asyncio-with-async-await
         await self.writer.drain()
+
+    async def close(self, message: TaskMessage = None):
+        if message:
+            await self.send(message)
+        self.writer.close()
+        await self.writer.wait_closed()
 
     def _check_configuration(self, received_config):
         # TODO
+        logging.info("checking configuration")
         return True
+
+    async def _run_configuration(self):
+        # Setup Biosemi
+        self.biosemi_source = BioSemiListener(Config.biosemi.host,
+                                           Config.biosemi.port,
+                                           Config.biosemi.channels)
+
+        # Setup Classifier
+        # Connor: TODO: if we use different classifier versions or the like,
+        # we'll need subclasses or a factory
+        Classifier.setup_process_pool(Config.system.cores)
+        self.classifier = Classifier(self.biosemi_source.publisher_id,
+                                     Config.classifier.secsdatabuffered,
+                                     Config.classifier.samplerate,
+                                     Config.classifier.datarate,
+                                     Config.classifier.classiffreq)
+        self.subscribe(self.classifier_receiver, self.classifier.publisher_id, name_in_log="TaskConnection")
+
+        # Connect to all of the sources
+        await self.biosemi_source.connect()
+        logging.info("task server connected to biosemi listener")
+

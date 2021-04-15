@@ -1,13 +1,22 @@
 {
+  "datadir":"../data",
   "task": {
     "host": "127.0.0.1",
     "port": 8889
   },
   "biosemi": {
     "host": "127.0.0.1",
-    "port": 9999,
-    "channels": 128
+    "port": 8888,
+    "channels": 128,
+    "samplerate":2048
   },
   "classifier": {
+    "samplerate":2048,
+    "secsdatabuffered":1,
+    "datarate":16, 
+    "classiffreq":1
+  },
+  "system":{
+	"cores":5
   }
 }

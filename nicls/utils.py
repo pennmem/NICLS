@@ -1,4 +1,5 @@
 import asyncio
+import multiprocessing
 import time
 
 
@@ -11,8 +12,8 @@ async def repeated_invoke(coro, delay):
     :param delay: Interval in seconds
     :return: None
     '''
-    while not True:
+    while True:
         start = time.perf_counter()
         await coro()
         end = time.perf_counter()
-        await asyncio.sleep(max(0, delay - (end-start)))
+        await asyncio.sleep(max(0, delay - (end - start)))

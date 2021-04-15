@@ -1,8 +1,12 @@
 import configparser
 import json
 import pathlib
+import logging
+
 from typing import Union, Any
 
+
+# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 def load_configuration(path: Union[pathlib.Path, str]):
     if not isinstance(path, pathlib.Path):
@@ -21,6 +25,8 @@ def load_configuration(path: Union[pathlib.Path, str]):
         raise Exception("config type not supported.")
 
 
+# JPB: TODO: Why isn't this just a class? (why does it inherit from type?)
+# Even if this design were to be used, it could be simple inheritance
 class MetaConfig(type):
     def __new__(mcs, *args, **kwargs):
         cls = super().__new__(mcs, *args, **kwargs)
