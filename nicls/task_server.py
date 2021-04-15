@@ -101,7 +101,7 @@ class TaskConnection(Subscriber):
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
         out_message = TaskMessage("classifier", **{"label": message})
-        asyncio.create_task(self.send(bytes(out_message)))  # Task not awaited
+        asyncio.create_task(self.send(out_message))  # Task not awaited
 
     async def listen(self):
         while not self.reader.at_eof():
@@ -119,32 +119,37 @@ class TaskConnection(Subscriber):
 
             # JPB: TODO: Convert these to enums
             if message.type == 'CONNECTED':
-                await self.send(bytes(TaskMessage('CONNECTED_OK')))
+                await self.send(TaskMessage('CONNECTED_OK'))
             elif message.type == 'HEARTBEAT':
-                await self.send(bytes(TaskMessage('HEARTBEAT_OK')))
+                await self.send(TaskMessage('HEARTBEAT_OK'))
             elif message.type == 'CONFIGURE':
-                try:
-                    if self._check_configuration(message.data):
+                if self._check_configuration(message.data):
+                    try:
                         await self._run_configuration()
-                        await self.send(bytes(TaskMessage('CONFIGURE_OK')))
-                    else:
-                        # TODO: close connection
-                        await self.send(bytes(TaskMessage('ERROR_IN_CONFIG_FILE')))
-                except RuntimeError as e:
-                    # TODO: close connection
-                    await self.send(bytes(TaskMessage('ERROR_IN_CONFIG_FILE')))
+                        await self.send(TaskMessage('CONFIGURE_OK'))
+                    except RuntimeError as e:
+                        await self.close(TaskMessage('ERROR_IN_CONFIGURATION'))
+                        raise e
+                else:
+                    await self.close(TaskMessage('ERROR_IN_CONFIG_FILE'))
             elif message.type == "CLASSIFIER_ON":
                 self.classifier.enable()
             elif message.type == "CLASSIFIER_OFF":
                 self.classifier.disable()
 
     async def send(self, message: TaskMessage):
-        self.writer.write(message)
-        get_logger().log(TaskMessage.from_bytes(message))
+        self.writer.write(bytes(message))
+        get_logger().log(message)
         # JPB: This has a bug that drain doesn't actually wait till evrything is sent
         # This problem is particularly bad when the program finishes when the drain is low enough but the buffer isn't empty
         # Check Bug #3 on this webpage: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#example-3-asyncio-with-async-await
         await self.writer.drain()
+
+    async def close(self, message: TaskMessage = None):
+        if message:
+            await self.send(message)
+        self.writer.close()
+        await self.writer.wait_closed()
 
     def _check_configuration(self, received_config):
         # TODO
