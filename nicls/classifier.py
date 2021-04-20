@@ -4,11 +4,15 @@ import logging
 import time
 import numpy as np
 import json
+from sklearn.linear_model import LogisticRegression
+from ptsa.data.filters import ButterWorthFilter, MorletWaveletFilter
+from ptsa.data.timeseries import TimeSeries
 
 from collections import deque
 from concurrent.futures import ProcessPoolExecutor
 from nicls.data_logger import get_logger, Counter
 from nicls.pubsub import Publisher, Subscriber
+from nicls.configuration import Config
 
 
 class Classifier(Publisher, Subscriber):
@@ -19,23 +23,31 @@ class Classifier(Publisher, Subscriber):
     # then all the objects will share the same process pool
     @staticmethod
     def setup_process_pool(cores=1):
-        if Classifier._process_pool_executor == None:
+        if Classifier._process_pool_executor is None:
             Classifier._process_pool_executor = ProcessPoolExecutor(
                 max_workers=cores)
             Classifier._cores = cores
         else:
-            raise RuntimeError(f"Process pool already set up with {Classifier._cores} workers")
+            raise RuntimeError("Process pool already set up with "
+                               f"{Classifier._cores} workers")
 
     def __init__(self, biosemi_publisher_id, secs_of_data_buffered=None,
                  samplerate=None, datarate=None, classiffreq=None):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
+        self.samplerate = samplerate
 
-        if Classifier._process_pool_executor == None:
+        if Classifier._process_pool_executor is None:
             raise RuntimeError(
-                'Classifier process pool never set up. Please use "Classifier.setup_process_pool(...)"')
+                'Classifier process pool never set up. '
+                'Please use "Classifier.setup_process_pool(...)"')
 
         self._enabled = True
+
+        # load classifier from json
+        self.model = ClassifierModel(
+            LogisticRegression()
+        ).load_json(Config.classifier.filepath).get()
 
         # convert seconds to data packets
         buffer_len = int(secs_of_data_buffered * (1 / datarate) * samplerate)
@@ -45,7 +57,8 @@ class Classifier(Publisher, Subscriber):
         # datarate is number of samples per tcp data packet
         # samplerate is samples / second
         # need a conversion to packets per classification:
-        # packets / classification = (packets/sample)*(samples/s)*(s/classification)
+        # packets / classification =
+        #       (packets/sample)*(samples/s)*(s/classification)
         self.npackets = int((1 / datarate) * samplerate *
                             (1 / classiffreq) * (1 / Classifier._cores))
         self.packet_count = 0  # track how many packets have arrived
@@ -71,9 +84,34 @@ class Classifier(Publisher, Subscriber):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
         t = time.time()
-        pows = np.fft.fft(data)
-        time.sleep(3)
-        result = np.random.randint(0, 2)
+        # stack data along first axis (samples)
+        # then, transpose to make array channels x samples
+        data = np.vstack(data).T
+        eeg = TimeSeries(data,
+                         coords={'samplerate': self.samplerate},
+                         dims=['channel', 'time']
+                         )
+        # filter out line noise
+        eeg = ButterworthFilter(eeg, filt_type='stop', freq_range=[
+                                58, 62], order=4).filter()
+        # highpass filter 0.5 Hz to ignore drift
+        eeg = ButterworthFilter(eeg, filt_type='highpass',
+                                freq_range=0.5).filter()
+        # Wavelet power decomposition
+        # FIXME: what's the right number of cpus?
+        # FIXME: do freqs programatically
+        pows = MorletWaveletFilter(eeg,
+                                   np.logspace(*Config.classifier.freq_specs),
+                                   output='power', cpus=5).filter()
+        pows = pows.remove_buffer(buffer_time).data + \
+            np.finfo(np.float).eps / 2.
+        # log transform
+        log_pows = np.log10(pows)
+        # average over time/samples
+        avg_pows = np.nanmean(log_pows, -1)
+        # reshape as events x features (only one event epoch)
+        avg_pows = avg_pows.reshape((1, -1))
+        result = self.model.predict(avg_pows)
         print(f"classification took {time.time()-t} seconds")
         return result
 
@@ -97,6 +135,7 @@ class Classifier(Publisher, Subscriber):
 
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
+
 
 class ClassifierModel:
     def __init__(self, model):
