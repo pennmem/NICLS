@@ -20,7 +20,7 @@ class TaskMessage(DataPoint):
 
     @staticmethod
     def from_bytes(message):
-        raw_data = json.loads(message.decode('utf-8'))
+        raw_data = json.loads(message.decode('utf-8', errors='ignore'))
 
         try:
             msgid = raw_data.pop("id")
@@ -114,6 +114,7 @@ class TaskConnection(Subscriber):
                 # TODO
                 print(e)
 
+            print(message)
             message = TaskMessage.from_bytes(message)
             get_logger().log(message)
 

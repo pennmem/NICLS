@@ -1,10 +1,10 @@
 import asyncio
 import logging
 
-from nicls.task_server import TaskServer
 from nicls.configuration import load_configuration, Config
 from nicls.data_logger import get_logger
 from nicls.utils import repeated_invoke
+from nicls.task_server_zmq import TaskServer
 
 
 async def main():
@@ -21,7 +21,7 @@ async def main():
 
     async with TaskServer(Config.task.host, Config.task.port) as task_server:
         await asyncio.gather(task_server, logger_write)
-
+    
 if __name__ == "__main__":
     # load config
     load_configuration("test/config.json")
