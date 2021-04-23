@@ -52,9 +52,9 @@ class DataPoint:
         return json.dumps(
             {
                 "type": self.type,
+                "data": self.data,
                 "time": self.time.timestamp() if
                 isinstance(self.time, datetime.datetime) else self.time,
-                "data": self.data,
                 "id": self.id
             },
         )
