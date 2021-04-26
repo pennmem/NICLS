@@ -12,10 +12,11 @@
   },
   "classifier": {
     "samplerate":2048,
-    "freq_specs":(6, 180, 8),
+    "freq_specs":[6, 180, 8],
     "secsdatabuffered":1,
     "datarate":16, 
-    "classiffreq":1
+    "classiffreq":1,
+    "filepath":"../tests/NIC999_classifier.json"
   },
   "system":{
 	"cores":5

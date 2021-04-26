@@ -5,7 +5,7 @@ import time
 import numpy as np
 import json
 from sklearn.linear_model import LogisticRegression
-from ptsa.data.filters import ButterWorthFilter, MorletWaveletFilter
+from ptsa.data.filters import ButterworthFilter, MorletWaveletFilter
 from ptsa.data.timeseries import TimeSeries
 
 from collections import deque
@@ -80,7 +80,7 @@ class Classifier(Publisher, Subscriber):
             else:
                 asyncio.create_task(self.fit())  # Task not awaited
 
-    def load(self, data):
+    def load(self, data, freq_specs):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
         t = time.time()
@@ -100,11 +100,13 @@ class Classifier(Publisher, Subscriber):
         # Wavelet power decomposition
         # FIXME: what's the right number of cpus?
         # FIXME: do freqs programatically
+        buffer_time = 0
+        log_freq_specs = (np.log10(freq_specs[0]), np.log10(freq_specs[1]), freq_specs[2])
         pows = MorletWaveletFilter(eeg,
-                                   np.logspace(*Config.classifier.freq_specs),
+                                   np.logspace(*log_freq_specs),
                                    output='power', cpus=5).filter()
-        pows = pows.remove_buffer(buffer_time).data + \
-            np.finfo(np.float).eps / 2.
+        pows.remove_buffer(buffer_time)
+        pows = pows.data + np.finfo(np.float).eps / 2.
         # log transform
         log_pows = np.log10(pows)
         # average over time/samples
@@ -113,7 +115,7 @@ class Classifier(Publisher, Subscriber):
         avg_pows = avg_pows.reshape((1, -1))
         result = self.model.predict(avg_pows)
         print(f"classification took {time.time()-t} seconds")
-        return result
+        return result[0]
 
     # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
@@ -123,7 +125,7 @@ class Classifier(Publisher, Subscriber):
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         result = await loop.run_in_executor(
             Classifier._process_pool_executor, self.load, np.array(
-                list(self.ring_buf))
+                list(self.ring_buf)), Config.classifier.freq_specs
         )
         self.publish(result, log=True)
 
@@ -139,7 +141,7 @@ class Classifier(Publisher, Subscriber):
 
 class ClassifierModel:
     def __init__(self, model):
-        self.dignity = None
+        self.model = model
         self.model_params = model.__dict__
 
     def save_json(self, filepath):
@@ -156,7 +158,8 @@ class ClassifierModel:
         for k, v in self.model_params.items():
             if isinstance(v, list):
                 self.model_params[k] = np.asarray(v)
-        model.__dict__ = self.model_params
+        self.model.__dict__ = self.model_params
+        return self
 
     def get(self):
-        return model
+        return self.model
