@@ -61,7 +61,8 @@ class TaskServer(Subscriber):
 
     async def __aenter__(self):
         self._sock = zmq.asyncio.Context().socket(zmq.PAIR)
-        self._sock.bind(f'tcp://{self._host}:{self._port}')
+        #self._sock.bind(f'tcp://{self._host}:{self._port}')
+        self._sock.bind(f'tcp://*:{self._port}')
         return self.listen()
 
     async def __aexit__(self):
