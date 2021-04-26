@@ -6,8 +6,8 @@ This connects the Courier Task and biosemi to a backend that runs a classifier
 The classifier determines when the participant in the Task should receive a new word
 
 ## Installation
-1. pip install numpy aiofiles django
-1. pip install -e ./nicls 
+1. pip3 install numpy aiofiles django zmq
+1. pip3 install -e ./NICLS
 
 ## Generate Installer
 JPB: TODO: Add installer instructions here
