@@ -16,24 +16,21 @@ class DummyTask:
 
     async def connect(self):
         logging.info("connecting task")
-        self.reader, self.writer = await asyncio.open_connection(
-            self.host,
-            self.port
-        )
-
-        self.writer.write(bytes(TaskMessage("CONNECTED")))
-        await self.writer.drain()
-
-        message = await self.reader.readline()
-        if TaskMessage.from_bytes(message).type != 'CONNECTED_OK':
+        self._sock = zmq.asyncio.Context().socket(zmq.PAIR)
+        self._sock.connect(f'tcp://{self.host}:{self.port}')
+        
+        # CONNECT
+        await self._sock.send("CONNECTED".encode('UTF-8'))
+        
+        message = await self._sock.recv()
+        if message.decode('UTF-8') != "CONNECTED":
             raise Exception("Task server not connected")
+        logging.debug("task server connected")
 
         # CONFIGURE
-        self.writer.write(bytes(TaskMessage("CONFIGURE")))
-        await self.writer.drain()
-
-        message = await self.reader.readline()
-        if TaskMessage.from_bytes(message).type != 'CONFIGURE_OK':
+        await self._sock.send("CONFIGURE".encode('UTF-8'))
+        message = await self._sock.recv()
+        if message.decode('UTF-8') != "CONFIGURE":
             raise Exception("Task server not configured")
         logging.debug("task server configured")
         # LATENCY CHECK
@@ -49,15 +46,22 @@ class DummyTask:
         #     # could be implemented here for completeness
         #     await asyncio.sleep(.2)
 
-        await asyncio.gather(
-            self.listen(), repeated_invoke(self._heartbeat, 1)
-        )
+        #await asyncio.gather(
+        #    self.listen(), repeated_invoke(self._heartbeat, 1)
+        #)
+
+        await asyncio.gather(self.listen2())
+
+    async def listen2(self):
+        while True:
+            classifier_result = await self._sock.recv()
+            logging.debug('-----------------------------------------------')
+            logging.debug("classifier result: " + classifier_result.decode('UTF-8'))
+            logging.debug('-----------------------------------------------')
 
     async def _heartbeat(self):
         logging.debug("send Heartbeat")
-        self.writer.write(bytes(TaskMessage("HEARTBEAT")))
-        self.is_beating = False
-        await self.writer.drain()
+        await self._sock.send("HEARTBEAT".encode('UTF-8'))
         # await self.wait_for("HEARTBEAT")
         # message = await self.reader.readline()
 
