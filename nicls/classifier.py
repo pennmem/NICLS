@@ -80,7 +80,7 @@ class Classifier(Publisher, Subscriber):
             else:
                 asyncio.create_task(self.fit())  # Task not awaited
 
-    def load(self, data, freq_specs):
+    def load(self, data, config):
         # the loading here should construct the full processing chain,
         # which will run as part of fit
         t = time.time()
@@ -101,10 +101,15 @@ class Classifier(Publisher, Subscriber):
         # FIXME: what's the right number of cpus?
         # FIXME: do freqs programatically
         buffer_time = 0
-        log_freq_specs = (np.log10(freq_specs[0]), np.log10(freq_specs[1]), freq_specs[2])
+        freq_specs = config['freq_specs']
+        freqs = np.logspace(np.log10(freq_specs[0]),
+                            np.log10(freq_specs[1]),
+                            freq_specs[2])
         pows = MorletWaveletFilter(eeg,
-                                   np.logspace(*log_freq_specs),
-                                   output='power', cpus=5).filter()
+                                   freqs=freqs,
+                                   width=4,
+                                   output='power',
+                                   cpus=5).filter()
         pows.remove_buffer(buffer_time)
         pows = pows.data + np.finfo(np.float).eps / 2.
         # log transform
@@ -123,9 +128,10 @@ class Classifier(Publisher, Subscriber):
     async def fit(self):
         logging.info("fitting data")
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
+        classifier_config = Config.classifier.get_dict()
         result = await loop.run_in_executor(
             Classifier._process_pool_executor, self.load, np.array(
-                list(self.ring_buf)), Config.classifier.freq_specs
+                list(self.ring_buf)), classifier_config
         )
         self.publish(result, log=True)
 
