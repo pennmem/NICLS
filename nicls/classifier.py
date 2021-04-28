@@ -36,6 +36,7 @@ class Classifier(Publisher, Subscriber):
         super().__init__("CLASSIFIER")
         logging.info("initializing classifier")
         self.samplerate = samplerate
+        self.secs_of_data_buffered = secs_of_data_buffered
 
         if Classifier._process_pool_executor is None:
             raise RuntimeError(
@@ -80,7 +81,11 @@ class Classifier(Publisher, Subscriber):
             else:
                 asyncio.create_task(self.fit())  # Task not awaited
 
-    def load(self, data, config):
+    def load(self, data, config, norm: tuple = (0, 1)):
+        """
+        Function that actually processes an incoming eeg buffer
+
+        """
         # the loading here should construct the full processing chain,
         # which will run as part of fit
         t = time.time()
@@ -99,25 +104,28 @@ class Classifier(Publisher, Subscriber):
                                 freq_range=0.5).filter()
         # Wavelet power decomposition
         # FIXME: what's the right number of cpus?
-        # FIXME: do freqs programatically
-        # TODO: compute buffer_time from wavelet width and min freq
-        buffer_time = 0.4
         freq_specs = config['freq_specs']
         freqs = np.logspace(np.log10(freq_specs[0]),
                             np.log10(freq_specs[1]),
                             freq_specs[2])
+        # width is really n_cycles, buffer needs to be at least half
+        # the width at the lowest frequency
+        buffer_time = 1 / freq_specs[0] * config['wavelet_width'] / 2
         pows = MorletWaveletFilter(eeg,
                                    freqs=freqs,
                                    width=config['wavelet_width'],
                                    output='power',
                                    cpus=5).filter()
-        pows = pows.remove_buffer(buffer_time).data + np.finfo(np.float).eps / 2.
+        pows = pows.remove_buffer(buffer_time).data + \
+            np.finfo(np.float).eps / 2.
         # log transform
         log_pows = np.log10(pows)
         # average over time/samples
         avg_pows = np.nanmean(log_pows, -1)
         # reshape as events x features (only one event epoch)
         avg_pows = avg_pows.reshape((1, -1))
+        # normalize powers
+        norm_pows = (avg_pows - norm[0]) / norm[1]
         result = self.model.predict(avg_pows)
         print(f"classification took {time.time()-t} seconds")
         return result[0]
