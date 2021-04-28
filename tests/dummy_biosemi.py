@@ -27,8 +27,7 @@ class DummyBiosemi:
             data = b"\xff\xff\x7f" * self.channels * 8
             writer.write(data)
 
-            await asyncio.sleep(0.8)
-            # await asyncio.sleep(0.008)
+            await asyncio.sleep(0.008)
 
 
 async def main():
