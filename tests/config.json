@@ -13,7 +13,7 @@
   "classifier": {
     "samplerate":2048,
     "freq_specs":[6, 180, 8],
-    "secsdatabuffered":0.016,
+    "secsdatabuffered":0.6,
     "datarate":16, 
     "classiffreq":10,
     "filepath":"../tests/NIC999_classifier.json"
