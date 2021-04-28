@@ -17,7 +17,7 @@
     "wavelet_width": 4,
     "datarate":16, 
     "classiffreq":10,
-    "filepath":"../tests/NIC999_classifier.json"
+    "filepath":"../tests/NIC999_classifier_notnormalized.json"
   },
   "system":{
 	"cores":5
