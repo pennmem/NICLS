@@ -100,18 +100,18 @@ class Classifier(Publisher, Subscriber):
         # Wavelet power decomposition
         # FIXME: what's the right number of cpus?
         # FIXME: do freqs programatically
-        buffer_time = 0
+        # TODO: compute buffer_time from wavelet width and min freq
+        buffer_time = 0.4
         freq_specs = config['freq_specs']
         freqs = np.logspace(np.log10(freq_specs[0]),
                             np.log10(freq_specs[1]),
                             freq_specs[2])
         pows = MorletWaveletFilter(eeg,
                                    freqs=freqs,
-                                   width=4,
+                                   width=config['wavelet_width'],
                                    output='power',
                                    cpus=5).filter()
-        pows.remove_buffer(buffer_time)
-        pows = pows.data + np.finfo(np.float).eps / 2.
+        pows = pows.remove_buffer(buffer_time).data + np.finfo(np.float).eps / 2.
         # log transform
         log_pows = np.log10(pows)
         # average over time/samples
