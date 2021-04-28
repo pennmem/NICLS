@@ -81,14 +81,19 @@ class Classifier(Publisher, Subscriber):
             else:
                 asyncio.create_task(self.fit())  # Task not awaited
 
-    def load(self, data, config, norm: tuple = (0, 1)):
+    def powers(self, data, config: dict, norm: tuple = (0, 1)):
         """
-        Function that actually processes an incoming eeg buffer
-
+        Process an incoming eeg buffer and compute PSD
+        Parameters:
+        data - eeg buffer
+        config - dict with parameters for wavelet analysis
+        norm - tuple of array-like with (mean, std) for normalizing
+            each feature
+        Returns:
+        norm_pows - normalized powers with shape 1 x n_feats
         """
         # the loading here should construct the full processing chain,
         # which will run as part of fit
-        t = time.time()
         # stack data along first axis (samples)
         # then, transpose to make array channels x samples
         data = np.vstack(data).T
@@ -126,21 +131,23 @@ class Classifier(Publisher, Subscriber):
         avg_pows = avg_pows.reshape((1, -1))
         # normalize powers
         norm_pows = (avg_pows - norm[0]) / norm[1]
-        result = self.model.predict(avg_pows)
-        print(f"classification took {time.time()-t} seconds")
-        return result[0]
+        return norm_pows
 
     # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
     async def fit(self):
+        t = time.time()
         logging.info("fitting data")
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
+        # pass in configuration parameters for analysis
         classifier_config = Config.classifier.get_dict()
-        result = await loop.run_in_executor(
-            Classifier._process_pool_executor, self.load, np.array(
+        powers = await loop.run_in_executor(
+            Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config
         )
+        result = self.model.predict(powers)[0]
+        print(f"classification took {time.time()-t} seconds")
         self.publish(result, log=True)
 
     def enable(self):
