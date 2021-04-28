@@ -142,6 +142,7 @@ class Classifier(Publisher, Subscriber):
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
         classifier_config = Config.classifier.get_dict()
+        # TODO: pass in normalization params
         powers = await loop.run_in_executor(
             Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config
