@@ -5,8 +5,8 @@ import time
 import numpy as np
 import json
 from sklearn.linear_model import LogisticRegression
-#from ptsa.data.filters import ButterworthFilter, MorletWaveletFilter
-#from ptsa.data.timeseries import TimeSeries
+from ptsa.data.filters import ButterworthFilter, MorletWaveletFilter
+from ptsa.data.timeseries import TimeSeries
 
 from collections import deque
 from concurrent.futures import ProcessPoolExecutor
@@ -45,6 +45,7 @@ class Classifier(Publisher, Subscriber):
 
         self._enabled = True
         self._encoding = 0
+        self._encoding_stats = None
         self._online_statistics = [OnlineStatistics()] * samplerate
 
         # load classifier from json
@@ -164,7 +165,11 @@ class Classifier(Publisher, Subscriber):
         t = time.time()
         logging.info("fitting data")
 
-        stats = np.array(self._encoding_stats).T
+        if not self._encoding_stats:
+            logging.warning("Classifier fitting without normalization")
+            stats = (0,1)
+        else:
+            stats = np.array(self._encoding_stats).T
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
