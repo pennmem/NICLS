@@ -137,6 +137,11 @@ class TaskServer(Subscriber):
             else:
             # TEMP END -------------------------------------
                 message = TaskMessage.from_bytes(message)
+                if message.type == 'ENCODING':
+                    print("---------------")
+                    print("ENCODING STUFF")
+                    self.classifier.encoding(message.data['enable'])
+                    print("---------------")
                 get_logger().log(message)
                 print(message)
             continue

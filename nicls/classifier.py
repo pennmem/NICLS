@@ -5,8 +5,8 @@ import time
 import numpy as np
 import json
 from sklearn.linear_model import LogisticRegression
-from ptsa.data.filters import ButterworthFilter, MorletWaveletFilter
-from ptsa.data.timeseries import TimeSeries
+#from ptsa.data.filters import ButterworthFilter, MorletWaveletFilter
+#from ptsa.data.timeseries import TimeSeries
 
 from collections import deque
 from concurrent.futures import ProcessPoolExecutor
@@ -44,6 +44,7 @@ class Classifier(Publisher, Subscriber):
                 'Please use "Classifier.setup_process_pool(...)"')
 
         self._enabled = True
+        self._online_statistics = [OnlineStatistics()] * samplerate
 
         # load classifier from json
         self.model = ClassifierModel(
@@ -71,15 +72,19 @@ class Classifier(Publisher, Subscriber):
     def biosemi_receiver(self, message, **kwargs):
         # TODO: check this is data and not 'error' or some such
         self.ring_buf.append(message)
-        # Skip npackets to avoid launching too many processes
-        self.packet_count += 1
-        if ((self.packet_count % self.npackets == 0) and self._enabled):
-            # Only fit if we have a full buffer
-            if self.packet_count < self.ring_buf.maxlen:
-                logging.warning(
-                    "Not enough biosemi data collected yet, please wait.")
-            else:
-                asyncio.create_task(self.fit())  # Task not awaited
+
+        # Only run stats or fit if we have a full buffer
+        if len(self.ring_buf) < self.ring_buf.maxlen:
+            logging.warning("Not enough biosemi data collected yet, please wait.")
+        else:
+            if self._encoding:
+                asyncio.create_task(self.encoding_stats())
+                return
+
+            # Skip npackets to avoid launching too many processes
+            self.packet_count += 1
+            if ((self.packet_count % self.npackets == 0) and self._enabled):
+                    asyncio.create_task(self.fit())  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
         """
@@ -133,12 +138,10 @@ class Classifier(Publisher, Subscriber):
         norm_pows = (avg_pows - norm[0]) / norm[1]
         return norm_pows
 
-    # TODO: Want to pass in to fit something that will help track
-    # the original order, so that classifier results can be matched
-    # with the epochs they're classifying
-    async def fit(self):
+    async def encoding_stats(self):
         t = time.time()
-        logging.info("fitting data")
+        logging.info("calculating encoding stats")
+
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
         classifier_config = Config.classifier.get_dict()
@@ -147,6 +150,30 @@ class Classifier(Publisher, Subscriber):
             Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config
         )
+
+        for i, stats in enumerate(self._online_statistics):
+            stats.update(powers[i])
+
+        print(f"encoding stats took {time.time()-t} seconds")
+
+    # TODO: Want to pass in to fit something that will help track
+    # the original order, so that classifier results can be matched
+    # with the epochs they're classifying
+    async def fit(self):
+        t = time.time()
+        logging.info("fitting data")
+
+        stats = np.array(self._encoding_stats).T
+
+        loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
+        # pass in configuration parameters for analysis
+        classifier_config = Config.classifier.get_dict()
+        # TODO: pass in normalization params
+        powers = await loop.run_in_executor(
+            Classifier._process_pool_executor, self.powers, np.array(
+                list(self.ring_buf)), classifier_config, (stats[0], stats[1])
+        )
+
         result = self.model.predict(powers)[0]
         print(f"classification took {time.time()-t} seconds")
         self.publish(result, log=True)
@@ -157,10 +184,15 @@ class Classifier(Publisher, Subscriber):
     def disable(self):
         self._enabled = False
 
+    def encoding(self, enabled):
+        self._encoding = enabled;
+        if not enabled:
+            self._encoding_stats = []
+            for stats in self._online_statistics:
+                self._encoding_stats.append(stats.finalize())
+
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
-
-
 class ClassifierModel:
     def __init__(self, model):
         self.model = model
@@ -185,3 +217,31 @@ class ClassifierModel:
 
     def get(self):
         return self.model
+
+from math import sqrt
+class OnlineStatistics:
+    def __init__(self):
+        self._existingAggregate = (0, 0, 0)
+
+    # For a new value newValue, compute the new count, new mean, the new M2.
+    # mean accumulates the mean of the entire dataset
+    # M2 aggregates the squared distance from the mean
+    # count aggregates the number of samples seen so far
+    def update(self, newValue):
+        (count, mean, M2) = self._existingAggregate
+        count += 1
+        delta = newValue - mean
+        mean += delta / count
+        delta2 = newValue - mean
+        M2 += delta * delta2
+        self._existingAggregate = (count, mean, M2)
+    
+    # Retrieve the mean, std dev and sample std dev from an aggregate
+    def finalize(self):
+        (count, mean, M2) = self._existingAggregate
+        if count < 2:
+            return float("nan")
+        else:
+            (mean, variance, sampleVariance) = (mean, M2 / count, M2 / (count - 1))
+            return (mean, sqrt(variance), sqrt(sampleVariance)) 
+
