@@ -44,6 +44,7 @@ class Classifier(Publisher, Subscriber):
                 'Please use "Classifier.setup_process_pool(...)"')
 
         self._enabled = True
+        self._encoding = 0
         self._online_statistics = [OnlineStatistics()] * samplerate
 
         # load classifier from json
