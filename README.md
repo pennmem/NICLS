@@ -24,7 +24,9 @@ Install NICLServer
 ## Run Tests (under development)
 1. run the tests
     1. cd tests
-    1. python main.py
+    1. python main.py (without Courier)
+    1. python main3.py (with Courier)
+
 1. check results
     1. Classifier results will print to screen once enough biosemi data has collected
     1. Logs will be stored in the "data" folder
