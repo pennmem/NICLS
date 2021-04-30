@@ -44,9 +44,12 @@ class Classifier(Publisher, Subscriber):
                 'Please use "Classifier.setup_process_pool(...)"')
 
         self._enabled = True
-        self._encoding = 0
+        self._encoding = False
         self._encoding_stats = None
-        self._online_statistics = [OnlineStatistics()] * samplerate
+        # features vector is shape (1, freqs x channels)
+        self.num_feats = Config.classifier.freq_specs[2] * \
+            Config.biosemi.channels
+        self._online_statistics = OnlineStatistics(self.num_feats)
 
         # load classifier from json
         self.model = ClassifierModel(
@@ -77,16 +80,17 @@ class Classifier(Publisher, Subscriber):
 
         # Only run stats or fit if we have a full buffer
         if len(self.ring_buf) < self.ring_buf.maxlen:
-            logging.warning("Not enough biosemi data collected yet, please wait.")
+            logging.warning(
+                "Not enough biosemi data collected yet, please wait.")
         else:
             if self._encoding:
+                # only process one epoch per word presentation
+                self._encoding = False
                 asyncio.create_task(self.encoding_stats())
-                return
-
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
             if ((self.packet_count % self.npackets == 0) and self._enabled):
-                    asyncio.create_task(self.fit())  # Task not awaited
+                asyncio.create_task(self.fit())  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
         """
@@ -152,9 +156,8 @@ class Classifier(Publisher, Subscriber):
             Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config
         )
-
-        for i, stats in enumerate(self._online_statistics):
-            stats.update(powers[i])
+        # .update() expects a column vectors of feature powers
+        self._online_statistics.update(powers)
 
         print(f"encoding stats took {time.time()-t} seconds")
 
@@ -167,7 +170,7 @@ class Classifier(Publisher, Subscriber):
 
         if not self._encoding_stats:
             logging.warning("Classifier fitting without normalization")
-            stats = (0,1)
+            stats = (0, 1)
         else:
             stats = np.array(self._encoding_stats).T
 
@@ -191,14 +194,14 @@ class Classifier(Publisher, Subscriber):
         self._enabled = False
 
     def encoding(self, enabled):
-        self._encoding = enabled;
+        self._encoding = enabled
         if not enabled:
-            self._encoding_stats = []
-            for stats in self._online_statistics:
-                self._encoding_stats.append(stats.finalize())
+            self._encoding_stats = self._online_statistics.finalize()
 
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
+
+
 class ClassifierModel:
     def __init__(self, model):
         self.model = model
@@ -224,30 +227,32 @@ class ClassifierModel:
     def get(self):
         return self.model
 
-from math import sqrt
-class OnlineStatistics:
-    def __init__(self):
-        self._existingAggregate = (0, 0, 0)
 
-    # For a new value newValue, compute the new count, new mean, the new M2.
+class OnlineStatistics:
+    def __init__(self, num_feats):
+        self._existingAggregate = (np.zeros((1, num_feats)),
+                                   np.zeros((1, num_feats)),
+                                   np.zeros((1, num_feats)))
+
+    # For a new features vector newFeats, compute the new count, new mean, the new M2.
     # mean accumulates the mean of the entire dataset
     # M2 aggregates the squared distance from the mean
     # count aggregates the number of samples seen so far
-    def update(self, newValue):
+    def update(self, newFeats):
         (count, mean, M2) = self._existingAggregate
         count += 1
-        delta = newValue - mean
+        delta = newFeats - mean
         mean += delta / count
-        delta2 = newValue - mean
+        delta2 = newFeats - mean
         M2 += delta * delta2
         self._existingAggregate = (count, mean, M2)
-    
+
     # Retrieve the mean, std dev and sample std dev from an aggregate
     def finalize(self):
         (count, mean, M2) = self._existingAggregate
         if count < 2:
             return float("nan")
         else:
-            (mean, variance, sampleVariance) = (mean, M2 / count, M2 / (count - 1))
-            return (mean, sqrt(variance), sqrt(sampleVariance)) 
-
+            (mean, variance, sampleVariance) = (
+                mean, M2 / count, M2 / (count - 1))
+            return (mean, np.sqrt(variance), np.sqrt(sampleVariance))
