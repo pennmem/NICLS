@@ -18,7 +18,7 @@ Install ptsa_new first
 1. cd ..
 
 Install NICLServer
-1.git checkout development 
+1.git checkout dev/classifier 
 1.python setup.py install
 
 ## Run Tests (under development)
