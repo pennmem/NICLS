@@ -18,7 +18,8 @@ Install ptsa_new first
 1. cd ..
 
 Install NICLServer
-1. python setup.py install
+1.git checkout development 
+1.python setup.py install
 
 ## Run Tests (under development)
 1. run the tests

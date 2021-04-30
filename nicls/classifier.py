@@ -56,6 +56,11 @@ class Classifier(Publisher, Subscriber):
             LogisticRegression()
         ).load_json(Config.classifier.filepath).get()
 
+        # load classifier from json
+        self.model = ClassifierModel(
+            LogisticRegression()
+        ).load_json(Config.classifier.filepath).get()
+
         # convert seconds to data packets
         buffer_len = int(secs_of_data_buffered * (1 / datarate) * samplerate)
         self.ring_buf = deque(maxlen=buffer_len)
@@ -179,12 +184,10 @@ class Classifier(Publisher, Subscriber):
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
         classifier_config = Config.classifier.get_dict()
-        # TODO: pass in normalization params
         powers = await loop.run_in_executor(
             Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config, (stats[0], stats[1])
         )
-
         result = self.model.predict(powers)[0]
         print(f"classification took {time.time()-t} seconds")
         self.publish(result, log=True)
@@ -209,11 +212,9 @@ class Classifier(Publisher, Subscriber):
             self._encoding_state = None
         else:
             self._encoding_stats = self._online_statistics.finalize()
-
+          
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
-
-
 class ClassifierModel:
     def __init__(self, model):
         self.model = model
