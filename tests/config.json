@@ -16,7 +16,7 @@
     "secsdatabuffered":1.6,
     "wavelet_width": 4,
     "datarate":16, 
-    "classiffreq":10,
+    "classiffreq":2,
     "filepath":"../tests/NIC999_classifier_normalized.json"
   },
   "system":{

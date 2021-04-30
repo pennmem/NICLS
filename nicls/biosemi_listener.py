@@ -40,7 +40,7 @@ class BioSemiListener(Publisher):
                 # TODO
                 logging.warning(e)
                 print(e)
-            self.publish(self.parse(data), log_msg="biosemi data")
+            self.publish(self.parse(data), log_msg="biosemi data", no_log=True)
 
     def parse(self, data: bytes):
         ''' Data format is 24 bytes per channel, repeated 8 times,

@@ -137,13 +137,12 @@ class TaskServer(Subscriber):
             else:
             # TEMP END -------------------------------------
                 message = TaskMessage.from_bytes(message)
-                if message.type == 'ENCODING':
-                    print("---------------")
-                    print("ENCODING STUFF")
-                    self.classifier.encoding(message.data['enable'])
-                    print("---------------")
                 get_logger().log(message)
                 print(message)
+                if message.type == 'ENCODING':
+                    self.classifier.encoding(message.data['enable'])
+                elif message.type == 'READ_ONLY_STATE':
+                    self.classifier.read_only_state(message.data['enable'])
             continue
 
             # JPB: TODO: Convert these to enums

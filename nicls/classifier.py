@@ -87,6 +87,7 @@ class Classifier(Publisher, Subscriber):
                 # only process one epoch per word presentation
                 self._encoding = False
                 asyncio.create_task(self.encoding_stats())
+
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
             if ((self.packet_count % self.npackets == 0) and self._enabled):
@@ -172,7 +173,8 @@ class Classifier(Publisher, Subscriber):
             logging.warning("Classifier fitting without normalization")
             stats = (0, 1)
         else:
-            stats = np.array(self._encoding_stats).T
+            stats = (0, 1)
+            #stats = (self._encoding_stats[0], self._encoding_stats[1])
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
@@ -194,8 +196,18 @@ class Classifier(Publisher, Subscriber):
         self._enabled = False
 
     def encoding(self, enabled):
+        print('--------------------')
+        print('ENCODING: ' + str(enabled))
+        print('--------------------')
         self._encoding = enabled
-        if not enabled:
+
+    def read_only_state(self, enabled):
+        print('--------------------')
+        print('READ_ONLY_STATE: ' + str(enabled))
+        print('--------------------')
+        if enabled:
+            self._encoding_state = None
+        else:
             self._encoding_stats = self._online_statistics.finalize()
 
 # Lightweight wrapper class for saving and loading sklearn models
@@ -250,8 +262,8 @@ class OnlineStatistics:
     # Retrieve the mean, std dev and sample std dev from an aggregate
     def finalize(self):
         (count, mean, M2) = self._existingAggregate
-        if count < 2:
-            return float("nan")
+        if count[0][0] < 2:
+            raise runtimeError("Variable count is less than 2")
         else:
             (mean, variance, sampleVariance) = (
                 mean, M2 / count, M2 / (count - 1))
