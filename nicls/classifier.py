@@ -209,7 +209,7 @@ class Classifier(Publisher, Subscriber):
         print('READ_ONLY_STATE: ' + str(enabled))
         print('--------------------')
         if enabled:
-            self._encoding_state = None
+            self._encoding_stats = None
         else:
             self._encoding_stats = self._online_statistics.finalize()
           
@@ -243,7 +243,7 @@ class ClassifierModel:
 
 class OnlineStatistics:
     def __init__(self, num_feats):
-        self._existingAggregate = (np.zeros((1, num_feats)),
+        self._existingAggregate = (0,
                                    np.zeros((1, num_feats)),
                                    np.zeros((1, num_feats)))
 
@@ -263,7 +263,7 @@ class OnlineStatistics:
     # Retrieve the mean, std dev and sample std dev from an aggregate
     def finalize(self):
         (count, mean, M2) = self._existingAggregate
-        if count[0][0] < 2:
+        if count < 2:
             raise runtimeError("Variable count is less than 2")
         else:
             (mean, variance, sampleVariance) = (
