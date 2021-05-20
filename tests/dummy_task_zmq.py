@@ -1,4 +1,4 @@
-from nicls.task_server import TaskMessage
+from nicls.task_server_zmq import TaskMessage
 from nicls.utils import repeated_invoke
 import logging
 
@@ -33,6 +33,21 @@ class DummyTask:
         if message.decode('UTF-8') != "CONFIGURE":
             raise Exception("Task server not configured")
         logging.debug("task server configured")
+
+        print("Waiting for data to collect")
+        await asyncio.sleep(15)
+        print("Read Only State - ON")
+        await self._sock.send(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 1})))
+        print("Encoding 1")
+        await self._sock.send(bytes(TaskMessage("ENCODING", **{"enable": 1})))
+        await asyncio.sleep(4)
+        print("Encoding 2")
+        await self._sock.send(bytes(TaskMessage("ENCODING", **{"enable": 1})))
+        await asyncio.sleep(4)
+        print("Read Only State - OFF")
+        await self._sock.send(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 0})))
+
+
         # LATENCY CHECK
         # logging.debug("starting latency check")
         # for i in range(20):
