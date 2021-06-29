@@ -43,7 +43,7 @@ class TaskMessage(DataPoint):
                 "data": self.data,
                 "time": self.time.timestamp() if
                 isinstance(self.time, datetime.datetime) else self.time,
-                # JPB: TODO: MVP2: add id
+                # JPB: TODO: NextDeliverable: add id
                 #"id": self.id
             }, 
             separators=(',', ':')
@@ -112,14 +112,14 @@ class TaskServer(Subscriber):
     def _classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
         out_message = TaskMessage("classifier", **{"label": message})
-        # JPB: TODO: MVP2: Make classifier send TaskMessage
+        # JPB: TODO: NextDeliverable: Make classifier send TaskMessage
         #asyncio.create_task(self._send(str(out_message)))  # Task not awaited
         asyncio.create_task(self._send(str(message)))
 
     async def listen(self):
         while self._sock:
             message = await self._recv()
-            # JPB: TODO: MVP2: Remove this and make everything work with TaskMessages
+            # JPB: TODO: NextDeliverable: Remove this and make everything work with TaskMessages
             # TEMP START ----------------------------------
             print(message)
             if message == b'CONNECTED':
@@ -139,6 +139,10 @@ class TaskServer(Subscriber):
                 message = TaskMessage.from_bytes(message)
                 get_logger().log(message)
                 print(message)
+                if message.type == 'ENCODING':
+                    self.classifier.encoding(message.data['enable'])
+                elif message.type == 'READ_ONLY_STATE':
+                    self.classifier.read_only_state(message.data['enable'])
             continue
 
             # JPB: TODO: Convert these to enums

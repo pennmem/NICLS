@@ -59,6 +59,10 @@ class MetaConfig(type):
             raise Exception("Config is read only")
         else:
             super().__setattr__(name, value)
+    
+    # JR: add method to get dictionary to avoid pickling in new processes
+    def get_dict(self):
+        return self._config
 
     # NOTE: we could expand this to allow iteration over a section of the config
 
