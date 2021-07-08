@@ -19,9 +19,10 @@ class Publisher:
         else:
             self.publisher_id = str(uuid4().hex)
 
-    def publish(self, message, log_msg=None, **kwargs):
-        logging.debug("({}:{}) {} published {}".format(
-            *_caller_function_info(), self.publisher_id, log_msg or message))
+    def publish(self, message, log_msg=None, no_log=None, **kwargs):
+        if not no_log:
+            logging.debug("({}:{}) {} published {}".format(
+                *_caller_function_info(), self.publisher_id, log_msg or message))
         _dispatcher.send(sender=self.publisher_id, message=message, **kwargs)
 
 class Subscriber:

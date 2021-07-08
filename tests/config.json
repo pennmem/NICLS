@@ -12,9 +12,12 @@
   },
   "classifier": {
     "samplerate":2048,
-    "secsdatabuffered":1,
+    "freq_specs":[6, 180, 8],
+    "secsdatabuffered":1.6,
+    "wavelet_width": 4,
     "datarate":16, 
-    "classiffreq":1
+    "classiffreq":2,
+    "filepath":"../tests/NIC999_classifier_normalized.json"
   },
   "system":{
 	"cores":5

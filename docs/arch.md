@@ -1,5 +1,3 @@
-JPB: TODO: Convert to rst
-
 # Architecture
 ## Definitions
 Data sources = Hardware that collects data about the participant such as the biosemi or an eyetracker
@@ -39,13 +37,12 @@ When a data source publishes new data that arrived, this is the order of events
 1. the new task server task will
 	1. send the the results to the task itself and finish
 
-## Design Diagram
-JPB: TODO: Add design file here
-
 ## Test Architecture
 ### Option 1
 main creates the nicls server, a fake biosemi data source, and a fake task data source
 ### Option 2
 main2 creates the nicls server and a fake task data source
 A real biosemi source is used
+
+JPB: TODO: Convert to rst
 
