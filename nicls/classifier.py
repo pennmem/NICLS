@@ -178,8 +178,8 @@ class Classifier(Publisher, Subscriber):
             logging.warning("Classifier fitting without normalization")
             stats = (0, 1)
         else:
-            stats = (0, 1)
-            #stats = (self._encoding_stats[0], self._encoding_stats[1])
+            #stats = (0, 1)
+            stats = (self._encoding_stats[0], self._encoding_stats[1])
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
@@ -264,6 +264,7 @@ class OnlineStatistics:
     def finalize(self):
         (count, mean, M2) = self._existingAggregate
         if count < 2:
+            print(count)  
             raise runtimeError("Variable count is less than 2")
         else:
             (mean, variance, sampleVariance) = (
