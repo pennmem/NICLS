@@ -113,6 +113,7 @@ class Classifier(Publisher, Subscriber):
         # which will run as part of fit
         # stack data along first axis (samples)
         # then, transpose to make array channels x samples
+
         data = np.vstack(data).T
         eeg = TimeSeries(data,
                          coords={'samplerate': self.samplerate},
@@ -163,6 +164,7 @@ class Classifier(Publisher, Subscriber):
                 list(self.ring_buf)), classifier_config
         )
         # .update() expects a column vectors of feature powers
+        logging.info("Updating online stats")
         self._online_statistics.update(powers)
 
         print(f"encoding stats took {time.time()-t} seconds")
@@ -178,7 +180,6 @@ class Classifier(Publisher, Subscriber):
             logging.warning("Classifier fitting without normalization")
             stats = (0, 1)
         else:
-            #stats = (0, 1)
             stats = (self._encoding_stats[0], self._encoding_stats[1])
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
@@ -212,7 +213,9 @@ class Classifier(Publisher, Subscriber):
             self._encoding_stats = None
         else:
             self._encoding_stats = self._online_statistics.finalize()
-          
+            logging.info("_encoding_stats have been finalized")
+            logging.info(f"mean:{self._encoding_stats[0]}, std: {self._encoding_stats[1]}")
+
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
 class ClassifierModel:
