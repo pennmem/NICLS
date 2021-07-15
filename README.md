@@ -22,6 +22,12 @@ Install NICLServer
 1.python setup.py install
 
 ## Run Tests (under development)
+
+In order to run tests with fake biosemi data, you need to use `pennmem/eegim`,
+which has been set up as a git submodule in this repository.
+
+Just run `git submodule init` followed by `git submodule update` to use the simulator for testing.
+
 1. run the tests
     1. cd tests
     1. python main.py (without Courier)
