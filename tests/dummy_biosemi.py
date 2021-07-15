@@ -1,5 +1,7 @@
 import asyncio
 import numpy as np
+from eegsim import EEGGen
+from functools import partial
 
 
 class DummyBiosemi:
@@ -24,8 +26,19 @@ class DummyBiosemi:
         while not writer.is_closing():
             # use max and min two's complement signed 24 bit ints, with high as exclusive upper bound
             # data = np.random.randint(low=int(0x7fffff), high=int(0x7fffff) + 1, size=self.channels*8).tobytes()
-            data = b"\xff\xff\x7f" * self.channels * 8
-            writer.write(data)
+            
+            # send one integer value
+            # data = b"\xff\xff\x7f" * self.channels * 8
+            # writer.write(data)
+                        
+            gen = EEGGen(sampling_rate=1000)
+            gen.EnablePinkNoise(50, 1)
+            eeg = gen.Generate(.016)
+            eeg = (eeg.reshape((len(eeg), 1)) + np.ones(self.channels)).ravel() 
+            data = map(partial(int.to_bytes, length=3, byteorder="little", signed=True),
+                   [int(eeg[i]) for i in range(0, len(eeg), 1)])
+            bytes_str = b"".join(list(data))
+            writer.write(bytes_str)
 
             await asyncio.sleep(0.008)
 
