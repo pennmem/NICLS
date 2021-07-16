@@ -24,8 +24,8 @@ def get_logger():
 def log_file_path(logTypeName):
     timestr = time.strftime("%Y%m%d%H%M")
     if not os.path.exists(Config.datadir):
-        os.makedirs(Config.datadir)
-    filename = os.path.join(Config.datadir, timestr + "_" + logTypeName + ".jsonl")
+        os.makedirs(os.path.join(Config.datadir, 'logs'))
+    filename = os.path.join(Config.datadir, 'logs', timestr + "_" + logTypeName + ".jsonl")
     logging.debug(f"{logTypeName} data will be written to {filename}")
     return filename
 
