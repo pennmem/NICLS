@@ -210,6 +210,7 @@ class Classifier(Publisher, Subscriber):
         print('READ_ONLY_STATE: ' + str(enabled))
         print('--------------------')
         if enabled:
+            self._online_statistics.reset()
             self._encoding_stats = None
         else:
             self._encoding_stats = self._online_statistics.finalize()
@@ -250,6 +251,12 @@ class OnlineStatistics:
                                    np.zeros((1, num_feats)),
                                    np.zeros((1, num_feats)))
 
+    def reset(self):
+        (count, mean, M2) = self._existingAggregate
+        self._existingAggregate = (0,
+                                   np.zeros((1, mean.size)),
+                                   np.zeros((1, M2.size)))
+
     # For a new features vector newFeats, compute the new count, new mean, the new M2.
     # mean accumulates the mean of the entire dataset
     # M2 aggregates the squared distance from the mean
@@ -268,7 +275,7 @@ class OnlineStatistics:
         (count, mean, M2) = self._existingAggregate
         if count < 2:
             print(count)  
-            raise runtimeError("Variable count is less than 2")
+            raise RuntimeError("Variable count is less than 2")
         else:
             (mean, variance, sampleVariance) = (
                 mean, M2 / count, M2 / (count - 1))

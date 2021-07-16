@@ -21,6 +21,15 @@ def get_logger():
     return _logger
 
 
+def log_file_path(logTypeName):
+    timestr = time.strftime("%Y%m%d%H%M")
+    if not os.path.exists(Config.datadir):
+        os.makedirs(Config.datadir)
+    filename = os.path.join(Config.datadir, timestr + "_" + logTypeName + ".jsonl")
+    logging.debug(f"{logTypeName} data will be written to {filename}")
+    return filename
+
+
 class Counter:
     ''' Multiprocessing safe counter for message id's
     '''

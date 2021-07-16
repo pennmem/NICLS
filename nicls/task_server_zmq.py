@@ -71,7 +71,7 @@ class TaskServer(Subscriber):
     async def _send(self, msg):
         if self._sock:
             await self._sock.send(msg.encode('UTF-8'))
-
+            
     async def _recv(self):
         if self._sock:
             return await self._sock.recv() 

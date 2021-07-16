@@ -45,9 +45,22 @@ class DummyTask:
         #     # could be implemented here for completeness
         #     await asyncio.sleep(.2)
 
-        await asyncio.gather(
-            self.listen(), repeated_invoke(self._heartbeat, 1)
-        )
+        print("Waiting for data to collect")
+        await asyncio.sleep(15)
+        print("Read Only State - ON")
+        self.writer.write(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 1})))
+        print("Encoding 1")
+        self.writer.write(bytes(TaskMessage("ENCODING", **{"enable": 1})))
+        await asyncio.sleep(4)
+        print("Encoding 2")
+        self.writer.write(bytes(TaskMessage("ENCODING", **{"enable": 1})))
+        await asyncio.sleep(4)
+        print("Read Only State - OFF")
+        self.writer.write(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 0})))
+
+        #await asyncio.gather(
+        #    self.listen(), repeated_invoke(self._heartbeat, 1)
+        #)
 
     async def _heartbeat(self):
         logging.debug("send Heartbeat")

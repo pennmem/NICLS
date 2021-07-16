@@ -23,13 +23,11 @@ class TaskMessage(DataPoint):
         raw_data = json.loads(message.decode('utf-8', errors='ignore'))
 
         try:
-            msgid = raw_data.pop("id")
             msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
                 "time"), sent=True, **raw_data.pop("data"))
         except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
-        msg.id = msgid
         return msg
 
     def __str__(self):
@@ -40,7 +38,6 @@ class TaskMessage(DataPoint):
                 "time": self.time.timestamp() if
                 isinstance(self.time, datetime.datetime) else self.time,
                 "data": self.data,
-                "id": self.id
             }
         ) + "\n"
 
@@ -100,7 +97,7 @@ class TaskConnection(Subscriber):
 
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
-        out_message = TaskMessage("classifier", **{"label": message})
+        out_message = TaskMessage("classifier", **{"label": int(message)})
         asyncio.create_task(self.send(out_message))  # Task not awaited
 
     async def listen(self):
@@ -137,6 +134,10 @@ class TaskConnection(Subscriber):
                 self.classifier.enable()
             elif message.type == "CLASSIFIER_OFF":
                 self.classifier.disable()
+            if message.type == 'ENCODING':
+                self.classifier.encoding(message.data['enable'])
+            elif message.type == 'READ_ONLY_STATE':
+                self.classifier.read_only_state(message.data['enable'])
 
     async def send(self, message: TaskMessage):
         self.writer.write(bytes(message))

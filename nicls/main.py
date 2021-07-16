@@ -2,15 +2,17 @@ import asyncio
 import logging
 
 from nicls.configuration import load_configuration, Config
-from nicls.data_logger import get_logger
+from nicls.data_logger import get_logger, log_file_path
 from nicls.utils import repeated_invoke
-from nicls.task_server_zmq import TaskServer
+from nicls.task_server import TaskServer
 
 
 async def main():
+    
     logging.basicConfig(format='%(asctime)s:%(filename)s:%(levelname)s:%(message)s',
                         level=logging.DEBUG,
                         handlers=[
+                            #logging.FileHandler(log_file_path("debug")),
                             logging.FileHandler("nicls.log"),
                             logging.StreamHandler()
                         ])
