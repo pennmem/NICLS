@@ -2,7 +2,7 @@ import asyncio
 from nicls.main import main as nicls
 from dummy_biosemi import DummyBiosemi
 #from dummy_task import DummyTask
-from dummy_task_zmq import DummyTask
+#from dummy_task_zmq import DummyTask
 from pathlib import Path
 from nicls.configuration import load_configuration, Config
 
