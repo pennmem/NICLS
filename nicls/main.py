@@ -26,5 +26,5 @@ async def main():
     
 if __name__ == "__main__":
     # load config
-    load_configuration("../tests/config.json")
+    load_configuration("../config.json")
     asyncio.run(main())
