@@ -1,0 +1,25 @@
+{
+  "datadir":"~/NICLS/data",
+  "task": {
+    "host": "127.0.0.1",
+    "port": 8889
+  },
+  "biosemi": {
+    "host": "127.0.0.1",
+    "port": 8888,
+    "channels": 128,
+    "samplerate":2048
+  },
+  "classifier": {
+    "samplerate":2048,
+    "freq_specs":[6, 180, 8],
+    "secsdatabuffered":1.6,
+    "wavelet_width": 4,
+    "datarate":16, 
+    "classiffreq":2,
+    "filepath":"put_filepath_here"
+  },
+  "system":{
+	"cores":5
+  }
+}
