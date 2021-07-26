@@ -12,7 +12,7 @@ setup(
     maintainer_email=['jbruska@sas.upenn.edu', 'jrudoler@sas.upenn.edu', 'kahana-sysadmin@sas.upenn.edu'],
     url='https://github.com/pennmem/NICLS',
     description = ("The backend system used to control the NICLS experiment"),
-    long_description=read('README'),
+    long_description=read('README.md'),
 
     install_requires=[
         "numpy",
