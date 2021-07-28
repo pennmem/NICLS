@@ -94,7 +94,6 @@ class TaskConnection(Subscriber):
     def __init__(self, reader, writer):
         self.reader = reader
         self.writer = writer
-        self._drain_lock = asyncio.Lock(loop=loop)
 
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
@@ -146,8 +145,7 @@ class TaskConnection(Subscriber):
         # JPB: This has a bug that drain doesn't actually wait till evrything is sent
         # This problem is particularly bad when the program finishes when the drain is low enough but the buffer isn't empty
         # Check Bug #3 on this webpage: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#example-3-asyncio-with-async-await
-        with (yield from self._drain_lock):
-            await self.writer.drain()
+        await self.writer.drain()
 
     async def close(self, message: TaskMessage = None):
         if message:
