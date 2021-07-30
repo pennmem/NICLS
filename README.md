@@ -19,9 +19,9 @@ Install ptsa_new first
 1. `cd ..`
 
 Install NICLServer
-1. pip install -e .
-    1. OR: python setup.py install
-1. cd ..
+1. `pip install -e .`
+    1. OR: `python setup.py install`
+1. `cd ..`
 
 ## Run Tests (under development)
 
