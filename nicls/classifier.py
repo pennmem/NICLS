@@ -190,7 +190,8 @@ class Classifier(Publisher, Subscriber):
             Classifier._process_pool_executor, self.powers, np.array(
                 list(self.ring_buf)), classifier_config, stats
         )
-        result = self.model.predict(powers)[0]
+        # why predict(powers)[0]? Just to have the right data type, it's size 1 anyway
+        result = self.model.predict_proba(powers)[:, 1]
         print(f"classification took {time.time()-t} seconds")
         self.publish(result, log=True)
 
