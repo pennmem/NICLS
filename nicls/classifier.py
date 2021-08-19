@@ -191,7 +191,7 @@ class Classifier(Publisher, Subscriber):
                 list(self.ring_buf)), classifier_config, stats
         )
         # why predict(powers)[0]? Just to have the right data type, it's size 1 anyway
-        result = self.model.predict_proba(powers)[:, 1]
+        result = self.model.predict_proba(powers)[0, 1]
         print(f"classification took {time.time()-t} seconds")
         self.publish(result, log=True)
 
