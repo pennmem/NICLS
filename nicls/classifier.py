@@ -180,14 +180,15 @@ class Classifier(Publisher, Subscriber):
             logging.warning("Classifier fitting without normalization")
             stats = (0, 1)
         else:
-            stats = (self._encoding_stats[0], self._encoding_stats[1])
+	    # Use sample std, not population std (ddof = 1)
+            stats = (self._encoding_stats[0], self._encoding_stats[2])
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
         # pass in configuration parameters for analysis
         classifier_config = Config.classifier.get_dict()
         powers = await loop.run_in_executor(
             Classifier._process_pool_executor, self.powers, np.array(
-                list(self.ring_buf)), classifier_config, (stats[0], stats[1])
+                list(self.ring_buf)), classifier_config, stats
         )
         result = self.model.predict(powers)[0]
         print(f"classification took {time.time()-t} seconds")
