@@ -74,6 +74,7 @@ class Classifier(Publisher, Subscriber):
         self.npackets = int((1 / datarate) * samplerate *
                             (1 / classiffreq) * (1 / Classifier._cores))
         self.packet_count = 0  # track how many packets have arrived
+        self.data_id = 0  # track an id to match biosemi data to classifier
 
         # Subscribe to data source(s))
         self.subscribe(self.biosemi_receiver,
@@ -96,8 +97,9 @@ class Classifier(Publisher, Subscriber):
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
             if ((self.packet_count % self.npackets == 0) and self._enabled):
-                self.publish({"EEG_EPOCH_END":{"id":0, "duration":-1, "wavelet_buffs":-2}}result, log=True)
-                asyncio.create_task(self.fit())  # Task not awaited
+                self.data_id += 1
+                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "duration":-1, "wavelet_buffs":-2}}, log=True)
+                asyncio.create_task(self.fit(self.data_id))  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
         """
@@ -173,7 +175,7 @@ class Classifier(Publisher, Subscriber):
     # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
-    async def fit(self):
+    async def fit(self, data_id):
         t = time.time()
         logging.info("fitting data")
 
@@ -193,9 +195,9 @@ class Classifier(Publisher, Subscriber):
         )
         # why predict(powers)[0]? Just to have the right data type, it's size 1 anyway
         prob = self.model.predict_proba(powers)[0, 1]
-        result = prob > 0.5 
+        result = bool(prob > 0.5)
         print(f"classification took {time.time()-t} seconds")
-        self.publish({"CLASSIFIER_RESULT":{"id":0, "result":result, "probability":prob}}result, log=True)
+        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob}}, log=True)
 
     def enable(self):
         self._enabled = True
