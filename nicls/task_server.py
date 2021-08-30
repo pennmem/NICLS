@@ -97,7 +97,8 @@ class TaskConnection(Subscriber):
 
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
-        out_message = TaskMessage("CLASSIFIER", **{"enable": int(message)})
+        message_name = message.keys()[0]
+        out_message = TaskMessage(message_name, message[message_name])
         asyncio.create_task(self.send(out_message))  # Task not awaited
 
     async def listen(self):
