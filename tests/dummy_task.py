@@ -54,7 +54,7 @@ class DummyTask:
         await asyncio.sleep(4)
         print("Encoding 2")
         self.writer.write(bytes(TaskMessage("ENCODING", **{"enable": 1})))
-        await asyncio.sleep(4)
+        await asyncio.sleep(10)
         print("Read Only State - OFF")
         self.writer.write(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 0})))
 
