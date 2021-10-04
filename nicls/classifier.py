@@ -119,7 +119,9 @@ class Classifier(Publisher, Subscriber):
                          coords={'samplerate': self.samplerate},
                          dims=['channel', 'time']
                          )
-        # filter out line noise
+	# average reference
+        eeg = eeg - eeg.mean("channel")
+	# filter out line noise
         eeg = ButterworthFilter(eeg, filt_type='stop', freq_range=[
                                 58, 62], order=4).filter()
         # highpass filter 0.5 Hz to ignore drift
