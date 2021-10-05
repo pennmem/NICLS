@@ -99,12 +99,12 @@ class Classifier(Publisher, Subscriber):
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
             if (self.packet_count % self.npackets == 0):
-                logging.info("EEG_EPOCH_END")
+                logging.info("EEG_EPOCH_END")  # For debugging purposes
             if ((self.packet_count % self.npackets == 0) and self._enabled):
                 data = self.ring_buf.copy()
                 self.data_id += 1
                 logging.info("EEG_EPOCH_END")
-                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "duration":-1, "wavelet_buffs":-2}}, log=True)
+                self.publish({"eeg epoch end":{"id":self.data_id, "eeg collection duration":-1, "wavelet buffs":-2}}, log=True)
                 asyncio.create_task(self.fit(data, self.data_id))  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
@@ -203,7 +203,7 @@ class Classifier(Publisher, Subscriber):
         result = int(bool(prob > 0.5))
         classificationDuration = time.time() - t
         print(f"classification took {classificationDuration} seconds")
-        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob, "classificationDuration":classificationDuration}}, log=True)
+        self.publish({"classifier result":{"id":data_id, "result":result, "probability":prob, "classifier duration":classificationDuration}}, log=True)
 
     def enable(self):
         self._enabled = True
