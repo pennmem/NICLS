@@ -104,7 +104,7 @@ class Classifier(Publisher, Subscriber):
                 data = self.ring_buf.copy()
                 self.data_id += 1
                 logging.info("EEG_EPOCH_END")
-                self.publish({"eeg epoch end":{"id":self.data_id, "eeg collection duration":-1, "wavelet buffs":-2}}, log=True)
+                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "eeg collection duration":-1, "wavelet buffs":-2}}, log=True)
                 asyncio.create_task(self.fit(data, self.data_id))  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
@@ -203,7 +203,7 @@ class Classifier(Publisher, Subscriber):
         result = int(bool(prob > 0.5))
         classificationDuration = time.time() - t
         print(f"classification took {classificationDuration} seconds")
-        self.publish({"classifier result":{"id":data_id, "result":result, "probability":prob, "classifier duration":classificationDuration}}, log=True)
+        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob, "classifier duration":classificationDuration}}, log=True)
 
     def enable(self):
         self._enabled = True
