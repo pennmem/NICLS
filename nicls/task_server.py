@@ -125,7 +125,7 @@ class TaskConnection(Subscriber):
                 if self._check_configuration(message.data):
                     try:
                         await self._run_configuration()
-                        await self.send(TaskMessage('CONFIGURE_OK'))
+                        await self.send(TaskMessage('CONFIGURE_OK', Config.get_dict()))
                     except RuntimeError as e:
                         await self.close(TaskMessage('ERROR_IN_CONFIGURATION'))
                         raise e

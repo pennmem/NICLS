@@ -31,9 +31,11 @@ class MetaConfig(type):
     def __new__(mcs, *args, **kwargs):
         cls = super().__new__(mcs, *args, **kwargs)
         cls._config = {}
+        cls._raw_config = {}
         return cls
 
     def load(self, config: dict):
+        self._raw_config = config.copy()
         for k, v in config.items():
             if isinstance(v, dict):
                 nested = MetaConfig(k, (), {})
@@ -62,7 +64,7 @@ class MetaConfig(type):
     
     # JR: add method to get dictionary to avoid pickling in new processes
     def get_dict(self):
-        return self._config
+        return self._raw_config
 
     # NOTE: we could expand this to allow iteration over a section of the config
 

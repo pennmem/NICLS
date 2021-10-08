@@ -104,7 +104,7 @@ class Classifier(Publisher, Subscriber):
                 data = self.ring_buf.copy()
                 self.data_id += 1
                 logging.info("EEG_EPOCH_END")
-                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "eeg collection duration":-1, "wavelet buffs":-2}}, log=True)
+                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "eeg collection duration":self.secs_of_data_buffered}}, log=True)
                 asyncio.create_task(self.fit(data, self.data_id))  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
