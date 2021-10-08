@@ -21,6 +21,7 @@ class DummyTask:
         await self.writer.drain()
 
         message = await self.reader.readline()
+        print(message)
         if TaskMessage.from_bytes(message).type != 'CONNECTED_OK':
             raise Exception("Task server not connected")
 
@@ -29,6 +30,7 @@ class DummyTask:
         await self.writer.drain()
 
         message = await self.reader.readline()
+        print(message)
         if TaskMessage.from_bytes(message).type != 'CONFIGURE_OK':
             raise Exception("Task server not configured")
         logging.debug("task server configured")
