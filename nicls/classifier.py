@@ -74,6 +74,7 @@ class Classifier(Publisher, Subscriber):
         self.npackets = int((1 / datarate) * samplerate *
                             (1 / classiffreq) * (1 / Classifier._cores))
         self.packet_count = 0  # track how many packets have arrived
+        self.data_id = 0  # track an id to match biosemi data to classifier
 
         # Subscribe to data source(s))
         self.subscribe(self.biosemi_receiver,
@@ -87,16 +88,24 @@ class Classifier(Publisher, Subscriber):
         if len(self.ring_buf) < self.ring_buf.maxlen:
             logging.warning(
                 "Not enough biosemi data collected yet, please wait.")
-        else:
-            if self._encoding:
-                # only process one epoch per word presentation
-                self._encoding = False
-                asyncio.create_task(self.encoding_stats())
-
+            return
+            
+        if self._encoding and self._encoding_stats == None:
+           # only process one epoch per word presentation
+           self._encoding = False
+           data = self.ring_buf.copy()
+           asyncio.create_task(self.encoding_stats(data))
+        elif self._encoding_stats != None:
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
+            if (self.packet_count % self.npackets == 0):
+                logging.info("EEG_EPOCH_END")  # For debugging purposes
             if ((self.packet_count % self.npackets == 0) and self._enabled):
-                asyncio.create_task(self.fit())  # Task not awaited
+                data = self.ring_buf.copy()
+                self.data_id += 1
+                logging.info("EEG_EPOCH_END")
+                self.publish({"EEG_EPOCH_END":{"id":self.data_id, "eeg collection duration":self.secs_of_data_buffered}}, log=True)
+                asyncio.create_task(self.fit(data, self.data_id))  # Task not awaited
 
     def powers(self, data, config: dict, norm: tuple = (0, 1)):
         """
@@ -153,7 +162,7 @@ class Classifier(Publisher, Subscriber):
         norm_pows = (avg_pows - norm[0]) / norm[1]
         return norm_pows
 
-    async def encoding_stats(self):
+    async def encoding_stats(self, data):
         t = time.time()
         logging.info("calculating encoding stats")
 
@@ -163,7 +172,7 @@ class Classifier(Publisher, Subscriber):
         # TODO: pass in normalization params
         powers = await loop.run_in_executor(
             Classifier._process_pool_executor, self.powers, np.array(
-                list(self.ring_buf)), classifier_config
+                list(data)), classifier_config
         )
         # .update() expects a column vectors of feature powers
         logging.info("Updating online stats")
@@ -174,15 +183,14 @@ class Classifier(Publisher, Subscriber):
     # TODO: Want to pass in to fit something that will help track
     # the original order, so that classifier results can be matched
     # with the epochs they're classifying
-    async def fit(self):
+    async def fit(self, data, data_id):
         t = time.time()
         logging.info("fitting data")
 
         if not self._encoding_stats:
             logging.warning("Classifier fitting without normalization")
             stats = (0, 1)
-        else:
-	    # Use sample std, not population std (ddof = 1)
+        else: # Use sample std, not population std (ddof = 1)
             stats = (self._encoding_stats[0], self._encoding_stats[2])
 
         loop = asyncio.get_running_loop()  # JPB: TODO: Catch exception?
@@ -190,12 +198,14 @@ class Classifier(Publisher, Subscriber):
         classifier_config = Config.classifier.get_dict()
         powers = await loop.run_in_executor(
             Classifier._process_pool_executor, self.powers, np.array(
-                list(self.ring_buf)), classifier_config, stats
+                list(data)), classifier_config, stats
         )
         # why predict(powers)[0]? Just to have the right data type, it's size 1 anyway
-        result = self.model.predict_proba(powers)[0, 1]
-        print(f"classification took {time.time()-t} seconds")
-        self.publish(result, log=True)
+        prob = self.model.predict_proba(powers)[0, 1]
+        result = int(bool(prob > 0.5))
+        classificationDuration = time.time() - t
+        print(f"classification took {classificationDuration} seconds")
+        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob, "classifier duration":classificationDuration}}, log=True)
 
     def enable(self):
         self._enabled = True
@@ -219,7 +229,7 @@ class Classifier(Publisher, Subscriber):
         else:
             self._encoding_stats = self._online_statistics.finalize()
             logging.info("_encoding_stats have been finalized")
-            logging.info(f"mean:{self._encoding_stats[0]}, std: {self._encoding_stats[1]}")
+            logging.info(f"mean:{self._encoding_stats[0]}, p-std: {self._encoding_stats[1]}, s-std: {self._encoding_stats[2]}")
 
 # Lightweight wrapper class for saving and loading sklearn models
 # as json
@@ -254,12 +264,14 @@ class OnlineStatistics:
         self._existingAggregate = (0,
                                    np.zeros((1, num_feats)),
                                    np.zeros((1, num_feats)))
+        print("\n\n\nINIT\n\n\n")
 
     def reset(self):
         (count, mean, M2) = self._existingAggregate
         self._existingAggregate = (0,
                                    np.zeros((1, mean.size)),
                                    np.zeros((1, M2.size)))
+        print("\n\n\nRESET\n\n\n")
 
     # For a new features vector newFeats, compute the new count, new mean, the new M2.
     # mean accumulates the mean of the entire dataset
@@ -273,13 +285,15 @@ class OnlineStatistics:
         delta2 = newFeats - mean
         M2 += delta * delta2
         self._existingAggregate = (count, mean, M2)
+        print("\n\n\nUPDATE {}\n\n\n".format(count))
 
     # Retrieve the mean, std dev and sample std dev from an aggregate
     def finalize(self):
         (count, mean, M2) = self._existingAggregate
+        print("\n\n\nFINALIZE {}\n\n\n".format(count))
         if count < 2:
             print(count)  
-            raise RuntimeError("Variable count is less than 2")
+            raise RuntimeError("Variable count is less than 2. This may mean that the updates need more time to process first. (add lock?)")
         else:
             (mean, variance, sampleVariance) = (
                 mean, M2 / count, M2 / (count - 1))

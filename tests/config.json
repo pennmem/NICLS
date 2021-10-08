@@ -20,6 +20,6 @@
     "filepath":"../tests/NIC999_classifier_normalized.json"
   },
   "system":{
-	"cores":5
+    "cores":5
   }
 }

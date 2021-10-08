@@ -21,6 +21,7 @@ class DummyTask:
         await self.writer.drain()
 
         message = await self.reader.readline()
+        print(message)
         if TaskMessage.from_bytes(message).type != 'CONNECTED_OK':
             raise Exception("Task server not connected")
 
@@ -29,6 +30,7 @@ class DummyTask:
         await self.writer.drain()
 
         message = await self.reader.readline()
+        print(message)
         if TaskMessage.from_bytes(message).type != 'CONFIGURE_OK':
             raise Exception("Task server not configured")
         logging.debug("task server configured")
@@ -54,7 +56,7 @@ class DummyTask:
         await asyncio.sleep(4)
         print("Encoding 2")
         self.writer.write(bytes(TaskMessage("ENCODING", **{"enable": 1})))
-        await asyncio.sleep(4)
+        await asyncio.sleep(10)
         print("Read Only State - OFF")
         self.writer.write(bytes(TaskMessage("READ_ONLY_STATE", **{"enable": 0})))
 

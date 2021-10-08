@@ -13,9 +13,8 @@ from nicls.pubsub import Subscriber
 
 class TaskMessage(DataPoint):
     # FIXME: protect internal args
-    def __init__(self, ev_type, time=None, sent=False, **kwargs):
-        super().__init__(time=time, **kwargs)
-        self.type = ev_type
+    def __init__(self, tm_type, time=None, data=None, sent=False):
+        super().__init__(tm_type, time, data)
         self.sent = sent
 
     @staticmethod
@@ -24,7 +23,7 @@ class TaskMessage(DataPoint):
 
         try:
             msg = TaskMessage(raw_data.pop("type"), time=raw_data.pop(
-                "time"), sent=True, **raw_data.pop("data"))
+                "time"), data=raw_data.pop("data"), sent=True)
         except KeyError:
             raise KeyError("Not a valid TaskMessage")
 
@@ -97,7 +96,8 @@ class TaskConnection(Subscriber):
 
     def classifier_receiver(self, message, **kwargs):
         logging.info(f"task server received classifier result: {message}")
-        out_message = TaskMessage("CLASSIFIER", **{"enable": int(message)})
+        message_name = list(message.keys())[0]
+        out_message = TaskMessage(message_name, data=message[message_name])
         asyncio.create_task(self.send(out_message))  # Task not awaited
 
     async def listen(self):
@@ -124,7 +124,7 @@ class TaskConnection(Subscriber):
                 if self._check_configuration(message.data):
                     try:
                         await self._run_configuration()
-                        await self.send(TaskMessage('CONFIGURE_OK'))
+                        await self.send(TaskMessage('CONFIGURE_OK', data=Config.get_dict()))
                     except RuntimeError as e:
                         await self.close(TaskMessage('ERROR_IN_CONFIGURATION'))
                         raise e

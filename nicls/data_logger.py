@@ -50,8 +50,8 @@ class DataPoint:
     # NOTE: note multiprocessing safe
     id_counter = Counter()
 
-    def __init__(self, dp_type=None, time=None, **kwargs):
-        self.data = kwargs
+    def __init__(self, dp_type:str=None, time=None, data:dict=None):
+        self.data = data or {}
         self.time = time or datetime.datetime.now(datetime.timezone.utc)
         self.type = dp_type or "datapoint"
 
