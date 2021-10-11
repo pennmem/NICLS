@@ -16,7 +16,7 @@
     "secsdatabuffered":2.0,
     "wavelet_width": 5,
     "datarate":16, 
-    "classiffreq":2,
+    "classiffreq":5,
     "filepath":"put_filepath_here"
   },
   "system":{
