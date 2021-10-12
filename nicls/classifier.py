@@ -95,12 +95,10 @@ class Classifier(Publisher, Subscriber):
            self._encoding = False
            data = self.ring_buf.copy()
            asyncio.create_task(self.encoding_stats(data))
-        elif self._encoding_stats != None:
+        elif self._enabled:
             # Skip npackets to avoid launching too many processes
             self.packet_count += 1
             if (self.packet_count % self.npackets == 0):
-                logging.info("EEG_EPOCH_END")  # For debugging purposes
-            if ((self.packet_count % self.npackets == 0) and self._enabled):
                 data = self.ring_buf.copy()
                 self.data_id += 1
                 logging.info("EEG_EPOCH_END")
@@ -205,7 +203,7 @@ class Classifier(Publisher, Subscriber):
         result = int(bool(prob > 0.5))
         classificationDuration = time.time() - t
         print(f"classification took {classificationDuration} seconds")
-        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob, "classifier duration":classificationDuration}}, log=True)
+        self.publish({"CLASSIFIER_RESULT":{"id":data_id, "result":result, "probability":prob, "normalized":str(self._encoding_stats != None), "classifier duration":classificationDuration}}, log=True)
 
     def enable(self):
         self._enabled = True
