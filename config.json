@@ -16,10 +16,10 @@
     "secsdatabuffered":2.0,
     "wavelet_width": 5,
     "datarate":16, 
-    "classiffreq":5,
+    "classiffreq":4,
     "filepath":"put_filepath_here"
   },
   "system":{
-	"cores":5
+    "cores":2
   }
 }
