@@ -36,7 +36,7 @@ class DummyBiosemi:
             eeg = gen.Generate(.016)
             eeg = (eeg.reshape((len(eeg), 1)) + np.ones(self.channels)).ravel() 
             data = map(partial(int.to_bytes, length=3, byteorder="little", signed=True),
-                   [int(eeg[i]) for i in range(0, len(eeg), 1)])
+                   [int(eeg[i]+i) for i in range(0, len(eeg), 1)])
             bytes_str = b"".join(list(data))
             writer.write(bytes_str)
 
