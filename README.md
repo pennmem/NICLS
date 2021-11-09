@@ -12,8 +12,9 @@ Install ptsa_new first
 1. `conda install -y -c pennmem fftw`
 1. `conda install -y -c conda-forge cxx-compiler`
 1. `conda install -y numpy scipy xarray swig traits`
-1. `git clone https://github.com/pennmem/ptsa_new.git`
-1. `cd ptsa_new`
+1. `git clone https://github.com/pennmem/ptsa.git`
+1. `cd ptsa`
+1. `git checkout a4e9298`
 1. `pip install -e .`
     1. OR: `python setup.py install`
 1. `cd ..`
