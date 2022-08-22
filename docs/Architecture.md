@@ -43,6 +43,9 @@ main creates the nicls server, a fake biosemi data source, and a fake task data 
 ### Option 2
 main2 creates the nicls server and a fake task data source
 A real biosemi source is used
+### Option 3
+main3 creates the nicls server and a fake biosemi data source
+A real task source is used
 
 JPB: TODO: Convert to rst
 

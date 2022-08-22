@@ -126,9 +126,9 @@ class Classifier(Publisher, Subscriber):
                          coords={'samplerate': self.samplerate},
                          dims=['channel', 'time']
                          )
-	# average reference
+        # average reference
         eeg = eeg - eeg.mean("channel")
-	# filter out line noise
+        # filter out line noise
         eeg = ButterworthFilter(eeg, filt_type='stop', freq_range=[
                                 58, 62], order=4).filter()
         # highpass filter 0.5 Hz to ignore drift
@@ -293,6 +293,5 @@ class OnlineStatistics:
             print(count)  
             raise RuntimeError("Variable count is less than 2. This may mean that the updates need more time to process first. (add lock?)")
         else:
-            (mean, variance, sampleVariance) = (
-                mean, M2 / count, M2 / (count - 1))
+            (mean, variance, sampleVariance) = (mean, M2 / count, M2 / (count - 1))
             return (mean, np.sqrt(variance), np.sqrt(sampleVariance))
