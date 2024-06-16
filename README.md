@@ -1,7 +1,7 @@
 # NICLS
-This is the backend for the NICLS Experiment
-This connects the Courier Task and biosemi to a backend that runs a classifier
-The classifier determines when the participant in the Task should receive a new word
+This repository contains the backend (data collection, processing, and classification) for the Non-invasive Closed-Loop Stimulus-presentation (NICLS) experiment (see https://doi.org/10.1101/2023.08.25.553563).
+
+This connects the behavioral task (a Unity application) and BioSemi EEG to a backend that classifies behaviorally relevant brain states and relays those results back to the task.
 
 ## Installation
 Create and activate conda environment
@@ -45,5 +45,3 @@ which has been set up as a git submodule in this repository.
 
 ## More information
 Please see the docs folder for more information
-
-JPB: TODO: Convert to rst
